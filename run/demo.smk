@@ -1,11 +1,10 @@
-import yaml
-
-configfile: "demo-config.yml"
-samples = config["samples"]
+sample_sheet = config["sample_sheet"]
+with open(sample_sheet) as f:
+    samples = [line.strip() for line in f if line.strip()]
 
 rule all:
     input:
-        "results/aggregate_summary.tsv"
+        "results/aggregate-summary.tsv"
 
 rule count_lines:
     input:
@@ -39,7 +38,7 @@ rule aggregate:
     input:
         expand("results/{sample}.summary", sample=samples)
     output:
-        "results/aggregate_summary.tsv"
+        "results/aggregate-summary.tsv"
     run:
         with open(output[0], "w") as out:
             out.write("sample\tlines\twords\n")
