@@ -1,1 +1,5 @@
 sample_sheet: complete/demo-sample-sheet.txt
+
+input_directory: demo-data/
+
+output_directory: demo-results/

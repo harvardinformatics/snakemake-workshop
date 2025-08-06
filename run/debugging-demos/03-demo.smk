@@ -24,8 +24,10 @@ rule count_words:
         os.path.join(INDIR, "{sample}.txt")
     output:
         os.path.join(OUTDIR, "{sample}.words")
+    log:
+        os.path.join(OUTDIR, "{sample}.words.log")
     shell:
-        "wc -w {input} > {output}"
+        "wc-demo-error -w {input} > {output} 2> {log}"
 
 rule combine_counts:
     input:

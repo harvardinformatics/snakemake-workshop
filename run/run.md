@@ -77,6 +77,8 @@ Or:
 
 ![Example workflow diagram](../img/workflow-demo-01.drawio.png)
 
+<!-- add mention that this is a rulegraph -->
+
 You can see that each of these steps requires input files, produces output files, and likely has an associate piece of software or a custom script written by the researcher. These steps and the tools associated with them are your analytical workflow - **the output of one step becomes the input of the next step**.
 
 Importantly, each step needs to be done for each sample or gene. For steps 1 and 2, you may have to run whatever tool you use for every sample in your data set, maybe dozens or even hundreds of times. For steps 3-7, you may have to run whatever tool you use for every gene in your analysis, possibly thousands of times.
@@ -248,7 +250,15 @@ Let's say we found the following documentation for this workflow:
     
     The sample sheet is specified in the config file with an entry called `samples:` with the value of that entry being the path to your sample sheet file, *e.g.* `sample_sheet: samples.txt` if your sample sheet file is named `samples.txt`.
 
-> **Exercise:** Based on the workflow documentation, create a *sample sheet* and a *config file* for this workflow. In our analysis, we have two sample files to run, `sample1.txt` and `sample2.txt`.
+    Also specified in the config file is the input directory with `input_directory:`. This directory should contain all the files that correspond to samples (*e.g.* `sample12.txt`). An output directory can also be specified with `output_directory:`, but this is optional. The default output directory is `results/`.
+
+> **Exercise:** Based on the workflow documentation, create a *sample sheet* and a *config file* for this workflow. In our analysis, we have two sample files to run, `sample1.txt` and `sample2.txt` located in the directory `demo-data/`.
+
+<!-- need some note or recommendation for how to edit text files during this workshop -->
+
+!!! note "Config templates"
+
+    One of the most useful pieces of documentation that can come with a workflow is a config template. This template would have all the parameters listed with comments (denoted by lines starting with `#`) that document what each parameter is and what is supposed to be input. For the purposes of the above exercise, though, we'll be building the simple config from scratch!
 
 ### The dryrun
 
@@ -422,6 +432,8 @@ Many issues can be caught during a dryrun. Fortunately, dryruns are quick, makin
 
 #### `KeyError`
 
+<!-- demo files 01 -->
+
 You'll usually see a `KeyError` if something is wrong in your config. Either a missing parameter or a typo.
 
 Run the following command to see an example of a `KeyError` using our demo workflow:
@@ -442,7 +454,7 @@ KeyError in file "/n/holylfs05/LABS/informatics/Lab/training/snakemake-workshop/
 >
 > * If you don't have a favorite text editor, just use `nano`. Type `nano debugging-demos/01-config.yml` to open the file for editing. Type freely with the keyboard. There is no mouse functionality so use the arrow keys to navigate. Use `ctrl-o` followed by `<enter>` to save the file. Use `ctrl-x` to exit. If you make changes and use `ctrl-x` to exit without saving, you will be prompted to save the file.
 
-### `FileNotFoundError`
+#### `FileNotFoundError`
 
 This is a pretty generic error that could happen for a lot of reasons. Fortunately, there is usually more context involved in that it will usually list the file that it can't find.
 
@@ -452,12 +464,135 @@ This is a pretty generic error that could happen for a lot of reasons. Fortunate
 snakemake -j 1 -s demo.smk --configfile complete/demo-config1.yml --dryrun
 ```
 
-### `MissingInputException`
+#### `MissingInputException`
+
+<!-- demo files 02 -->
+
+These can be a bit trickier. Since these errors only happen during Snakemake's assessment of the DAG, the error messages can be more confusing since they may refer to files that haven't yet been created. These errors typically mean that one of the expected inputs to a rule can't be created by the DAG given the overall workflow inputs. One cause may be a mismatch between an input file in a sample sheet and what files actually exist:
+
+```bash
+snakemake -j 1 -s demo.smk --configfile debugging-demos/02-config.yml --dryrun
+```
+
+> **Exercise:** Track down the problem with the above command and fix it so the dry run completes successfully.
+
+<!-- maybe a section about ambiguous wildcards, but that's usually a design problem -->
 
 ### Debugging during execution
 
+While debugging problems during a dryrun is at least somewhat straightforward, debugging problems that occur while actually executing the pipeline can be more difficult. This is because dryrun errors typically only involve the things that Snakemake checks when building the DAG, which, for a well designed workflow, are usually setup errors with the config file.
+
+Problems during execution, however, can involve errors in (1) the Snakemake workflow itself, (2) the tools that the rules call, or (3) as we'll see later on, errors with the cluster on which the workflow is run. Each of these may or may not produce their own log file, to which information about the error might be written.
+
+#### The Snakemake log
+
+Every Snakemake execution run generates a `.snakemake/` directory within the directory from which it was run. Most of this is internal Snakemake stuff that it uses to keep track of job progress and software environments. However, there are exceptions.
+
+Each Snakemake execution run also generates a log file. These are stored in `.snakemake/log/` and are named with the timestamp at which they were run. Because they're all saved, it can be difficult to remember which log goes with any particular time you tried to run the workflow, so it is a good idea to save any log file name you might need in the future. The name of the Snakemake log file will be displayed on the screen at the end of each run. Type `ls .snakemake/log/` to see all the log files you've generated so far in this workshop.
+
+The Snakemake log files contain a lot of information, including summaries of every rule executed for every wildcard. This is nice, but can also make the log file difficult to read.
+
+#### Command log files
+
+In a Snakemake workfile, if a rule uses a `shell:` directive to run a command, that command may also leave its own log file. In fact, well designed workflows should have log files for every task! These log files are often where the informative error message lies.
+
+> **Exercise:** Run the following to produce an error. Check the Snakemake log to try and figure out what went wrong.
+
+```bash
+# First a dryrun, which should complete successfully:
+snakemake -j 1 -s debugging-demos/03-demo.smk --configfile debugging-demos/03-demo-config.yml --dryrun
+
+# Then run the workflow, which should produce an error:
+snakemake -j 1 -s debugging-demos/03-demo.smk --configfile debugging-demos/03-demo-config.yml
+```
+
+There are lot's of things that could go wrong during the execution of a workflow, so we're not going to go through other examples. But hopefully now you at least know how to get started in tracking down any problems you encounter.
+
 ## Running on a Cluster
+
+Snakemake inherently solves some of the problems of complex data analysis workflows that we mentioned at the beginning of the workshop. Specifically, they make analyses reproducible and are relatively low maintenance once they are designed. However, we haven't yet tackled the parallelization problem
+
+Well, it turns out Snakemake inherently deals with this as well, being able to run jobs in the rulegraph that don't depend on each other simultaneously. This can easily be controlled with the `-j` argument, which we've only supplied with the value `1` until now. If this is increased to, say, `4`, then the workflow will, whenever possible, run up two 4 jobs simultaneously.
+
+This alone, however, isn't that helpful for large workflows since it is limited by the resources on the computer where Snakemake is run. Where Snakemake and other workflow managers really take off is when they are integrated with a job scheduling system (like SLURM) on a high-performance computing (HPC) cluster.
+
+### Executor plugins
+
+Snakemake integrates with job schedulers by using a set of **plugins**. These plugins are just additional software packages. See the list of plugins in the [Snakemake plugin catalogue](https://snakemake.github.io/snakemake-plugin-catalog/index.html). Here, you'll notice a series of **executor** plugins, which are used specifically to run jobs on specific job schedulers.
+
+> **Exercise:** Find the **slurm executor** plugin on the plugin catalogue page and read the documentation to find out how to install it, then install it in your environment. Run the following to make sure it is installed:
+
+```bash
+snakemake -e slurm -j 1 -s demo.smk --configfile complete/demo-config.yml --dryrun
+```
+
+If you get an error, then there was likely a problem with the plugin installation and you should ask us about it. Otherwise, the dryrun should complete normally.
+
+Note the  `-e slurm` option. This tells Snakemake we'd like to use the SLURM executor plugin for submitting jobs to a SLURM cluster. Now, instead of running tasks locally (or on the login node to which you are connected), each task will be submitted as a SLURM job!
 
 ### Resources
 
+While submitting the above command for execution may work, we're still lacking a key aspect of submitting jobs to a cluster: resource allocation requests.
+
+In order for Snakemake and SLURM to know how to submit these jobs, we have to give them information about how many resources they will need. In particular, we need to specify:
+
+- Memory
+- CPUs
+- Partition
+- Runtime
+
+<!-- mention account?? -->
+<!-- need to mention threads? -->
+
+While **partition** and **CPUs** are somewhat deterministic, **memory** and **runtime** usually require use to give best estimates. This can be a tricky task, and there aren't hard and fast rules for determining this even outside the context of Snakemake.
+
+In the context of Snakemake, resources need to be specified keeping in mind that each rule may run multiple jobs on different inputs, so you'll have to request what you think is the most memory and runtime a given rule would need for the highest resource demanding input.
+
+Resources can be set for all rules using default values, or set on a per-rule basis.
+
 ### Profiles
+
+Resources in a Snakemake workflow are most easily managed by the use of **workflow profiles**. This is a **directory** that contains another **YAML** formatted file (or sometimes a set of files) that contain information related to how you want the workflow to be run. It is required that the YAML file be named **config.yaml** within the profile folder.
+
+We have provided a workflow profile for the demo workflow at `demo-profile/`. The contents of the `config.yaml` file in that folder are:
+
+```yaml
+default-resources:
+  slurm_partition: test
+  mem_mb: 2048
+  runtime: 00:05:00
+  cpus_per_task: 1
+
+set-resources:
+  count_lines:
+    slurm_partition: test
+    mem_mb: 1024
+    runtime: 00:01:00
+    cpus_per_task: 1
+```
+
+Here, we have specified default resources to submit for all jobs. But for jobs submitted from the `count_lines` rule we've provided a different set of resources. If you'd like to see this in action, use the following command:
+
+```bash
+snakemake -j 5 -e slurm -s demo.smk --configfile complete/demo-config.yml --workflow-profile demo-profile/
+```
+
+<!-- at some point we need to mention that old results need to be deleted or a new output dir specified -->
+
+Note here the `--workflow-profile` option gives the **path to the directory containing the config.yaml file** where your resources are specified. We've also included `-e slurm` and increased `-j` to `5`, meaning that at most 5 jobs will be submitted to the cluster simultaneously.
+
+> **Exercise:** Edit the workflow profile config file to specify the following resources for the rule `count_words:`: 512MB of memory, 7 minute run time, 1 CPU, and the "shared" partition. Re-run the workflow if desired.
+
+Profiles can actually be used to specify any of the command line arguments for Snakemake, including the `--configfile` and the workflow script (`-s`).
+
+> **Exercise**: Edit the workflow profile such that the following dry run completes successfully:
+
+```bash
+snakemake --workflow-profile demo-profile/ --dryrun
+```
+
+<!-- mention that if the workflow script is called snakefile it doesn't even need to be specified in the command line -->
+
+Think of the workflow profile as the config for Snakemake itself, specifying program arguments and resources, while the workflow config file is the config file for a particular set of inputs to run through the profile.
+
+<!-- expand on this -->

@@ -1,0 +1,5 @@
+sample_sheet: debugging-demos/03-demo-sample-sheet.txt
+
+input_directory: demo-data/
+
+output_directory: debugging-demos/03-demo-results/

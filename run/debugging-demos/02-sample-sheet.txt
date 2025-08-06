@@ -1,2 +1,2 @@
-sample1
+sample1.txt
 sample3
