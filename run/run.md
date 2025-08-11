@@ -8,7 +8,7 @@ But first, you'll need to download the workshop repository! You can do this in a
 
 ### Downloading the workshop
 
-First, login to the cluster and navigate to the location in which you want to download the repo.
+First, login to the cluster and navigate to the location in which you want to download the repo. Since this is a temporary workshop, feel free to use the SCRATCH space (`/netscratch/YOUR_LAB/Lab/USERNAME`). 
 
 #### 1. If you are familiar with *git*:
 
@@ -61,6 +61,19 @@ This means snakemake is installed and ready to run! If you see any variation of 
 
 If you search for the snakemake package on conda-forge, you'll see several come up, with the two most popular being `snakemake` and `snakemake-minimal`. These will both install snakemake into your environment, however `snakemake` includes many extra dependencies, including those for remote execution and storage. Since our most likely use case is running on the cluster, we won't need those dependencies so we can stick with `snakemake-minimal`. But if you do ever need to store data or run workflows on places like AWS or Google, remember to use `snakemake`.
 
+<!-- I think we should just have them install snakemake regular. Are we trying to save space here? -->
+
+### Working with text files on the cluster
+
+This workshop we will be editing text files on the cluster, which means you must either be comfortable using a text editor on the command line, or you must be able to connect to the cluster with a remote desktop client such as [VSCode](), or edit the files on a local OpenOnDemand instance.
+
+If you want to use a text editor on the command line, we recommend using `nano`, which is a great beginner text editor. You open a file using the command `nano <filename>`. This will change your terminal to a text editor interface. You will need to use your arrow keys to navigate the text (not your mouse/clicking). You can type normally to add/change text. When you're done editing, you can save the file by pressing (on a PC) <!-- not sure -->, then `Enter`. On a Mac your keyboard shortcut for saving is `Ctrl + O`, then `Enter`. To exit, press <!-- something --> on a PC or `Ctrl + X` on a Mac, then `Enter`.
+
+If you want to use a the text editor VSCode to edit files on the cluster, you can follow the instructions on the [FASRC Docs page](https://docs.rc.fas.harvard.edu/kb/vscode-remote-development-via-ssh-or-tunnel/) on how to set that up. You can either run VSCode in your browser, or you can install it locally and connect to the cluster. Give this a try, but if it doesn't work, just use `nano` for now and we can try to troubleshoot it later.
+
+You can also open the files by using remote desktop or RStudio server. To start an OpenOnDemand session, you follow the directions on this [FASRC Docs page](https://docs.rc.fas.harvard.edu/kb/virtual-desktop/). <!-- more instructions here -->
+
+
 ## Workflows
 
 What do we mean when we say **workflow**? Well, let's picture some typical steps for a phylogenomic analysis:
@@ -98,6 +111,8 @@ do
     mafft "$locus" > /path/to/alignments/"$locus_base".aln
 done
 ```
+
+<!-- aln files are not represented in the rule graph in your example workflow diagram. Perhaps these bash examples should represent a specific step in that diagram? -->
 
 One might (and should) save this set of commands as a script for reproducibility, possibly calling it something like `04_run_mafft.sh`. That way when you look back at your analysis, you'll be able to easily remember what commands you ran and be able to run them again if needed.
 
@@ -186,7 +201,7 @@ At the bare minimum, rules require both **input** and **output** along with the 
 
 There are also other directives that can be added to a rule, such as `params:`, `log:`, `resources:`, and so on. Again, we will cover these more during the Develop workshop.
 
-You'll notice that the use of curly brackets `{}` is prevalent in Snakemake. In the `shell:` directive, `{input}` and `{output}` mean that Snakemake will directly plugin whatever is defined in the `input:` and `output:` directives into the shell command.
+You'll notice that the use of curly brackets `{}` is prevalent in Snakemake. In the `shell:` directive, `{input}` and `{output}` mean that Snakemake will directly plug in whatever is defined in the `input:` and `output:` directives into the shell command.
 
 However, you'll also notice the word `{locus_id}` in curly brackets in both the `input:` and `output:` directives. This is called a **wildcard** and is one of the most important concepts in understanding how Snakemake workflows are run.
 
@@ -197,6 +212,10 @@ Snakemake works backwards from a target rule, usually called `rule all:` and tri
 Enter wildcards. Wildcards are essential to know about when running a workflwo so you know how to setup your input files. Wildcards are patterns that Snakemake uses to find and define file names. Recall in our job array where we used a **manifest** file and then parsed out a locus ID from that list of files. This locus ID is a wildcard.
 
 The wildcards will be determined by the pipeline inputs, but are parsed by the workflow itself. **This means its crucial to follow the file naming conventions specifed in the documentation of the workflow.**
+
+<!-- I think this section could benefit from an example of how naming conventions in wildcards trace the lineage of files through the workflow -->
+
+You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `locus1`, `locus2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it need to generate. 
 
 ## Preparing the config file
 
@@ -254,8 +273,6 @@ Let's say we found the following documentation for this workflow:
 
 > **Exercise:** Based on the workflow documentation, create a *sample sheet* and a *config file* for this workflow. In our analysis, we have two sample files to run, `sample1.txt` and `sample2.txt` located in the directory `demo-data/`.
 
-<!-- need some note or recommendation for how to edit text files during this workshop -->
-
 !!! note "Config templates"
 
     One of the most useful pieces of documentation that can come with a workflow is a config template. This template would have all the parameters listed with comments (denoted by lines starting with `#`) that document what each parameter is and what is supposed to be input. For the purposes of the above exercise, though, we'll be building the simple config from scratch!
@@ -267,7 +284,7 @@ Now that we've followed the documentation about how to setup the inputs for the 
 > **Exercise:** Use your config file to run do a dryrun of the workflow:
 
 ```bash
-snamekame -j 1 -s demo --configfile <config file name> --dryrun
+snakemake -j 1 -s demo --configfile <config file name> --dryrun
 ```
 
 <details><summary>Command breakdown</summary>
@@ -386,7 +403,7 @@ Now this clearly shows what this workflow is doing, including the names of the r
 > **Exercise:** Let's also create a DAG for this workflow given our inputs:
 
 ```bash
-snamekame -j 1 -s demo --configfile <config file name> --dag | dot -Tpng > demo-dag.png
+snakemake -j 1 -s demo --configfile <config file name> --dag | dot -Tpng > demo-dag.png
 ```
 
 <details><summary>Command breakdown</summary>
@@ -421,6 +438,9 @@ Viewing that rulegraph and DAG of your workflow can be extremely helpful in unde
     Always run a dryrun and use a rulegraph before executing your workflow. This will help you know what to expect when you actually do execute the workflow
 
 ### Example workflows and their rulegraphs
+
+
+<!-- good time for the 10/15 minute break -->
 
 ## Debugging workflows
 
