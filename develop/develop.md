@@ -185,6 +185,8 @@ rule count_lines:
         "wc -l {input} | awk '{{print $1}}' > {output}"
 ```
 
+<!-- test again with dry-run and then run it for real, then delete the output folder-->
+
 #### More advanced `expand`ing
 
 You can have multiple wildcards in a single expand call. For example, you can expand both the sample name and the file type:
@@ -201,9 +203,9 @@ becomes
 
 ### Exercises 
 
-<!-- test again with dry-run and then run it for real, then delete the output folder-->
+In the next few sections, we will gradually build new rules for our Snakemake workflow based on the bash scripts in the `develop/shell-scripts` directory. We will name them `dev-01.smk`, `dev-02.smk`, etc. As we test and run our Snakemake workflows, we will be removing the `results` directory and its contents. This is because when we do a dry run, Snakemake checks to see if any intermediate or final files have already been created by the rules, and if so, excludes that rule from the dry run logic. This could cause unexpected behavior if we are intending to test the entire logic of the workflow. 
 
-> **Exercise**: At this point, try to add another rule `count_words` that counts the number of words in each input file. Test your code with `--dry-run` and then run it for real to make sure it worked.
+> **Exercise**: At this point, try to add another rule `count_words` that counts the number of words in each input file. Test your code with `--dry-run` and then run it for real to make sure it worked. Remember to remove the `results` directory before running the workflow again.
 
 > **Solution**: Only showing new ormodified rules
 
@@ -272,8 +274,90 @@ rule combine_counts:
 
 <!-- We should probably talk about multi-line shell scripts, tabs, and whitespace stuff here -->
 
-<!-- Insert teaching the aggregate rule here -->
+### Aggregation/reduction rule
 
+We will now move on to writing the final rule of our Snakemake workflow, which will adapt the script `04_aggregate.sh`. This script takes all the `.summary` files and combines them into a nice tab-separated file (TSV) with a header. Until now, we have only made rules that have a one-to-one correspondence between input and outputs, i.e. each input creates a unique output. This time, the `rule aggregate` will take many files and output a single file. Because this is a more complicated rule, let's break up the exercise into steps.
+
+>**Exercise**: First step: what is the input to `rule aggregate` and how would you specify it?
+
+**Solution**: The input to `rule aggregate` is all the `.summary` files. We know that all the summary files will be named following the pattern of `sample1.summary`, `sample2.summary`, etc. So we need to create an `expand()` function that will get all of these. 
+
+```python
+rule aggregate:
+    input: expand("results/{sample}.summary", sample = SAMPLES)
+```
+
+>**Exercise**: Based on the shell script, what should the output be?
+
+**Solution**: The output should be a single named file. Because it does not vary based on the input, it should not contain any wildcards. 
+
+```python 
+rule aggregate:
+    input: expand("results/{sample}.summary", sample = SAMPLES)
+    output: "results/combined.summary"
+```
+
+Now we will get to the difficult part of converting this script. First, notice how the input differs from previous rules' inputs. In our `rule combine_counts`, the input files were specified as separate lines for each count type (lines and words). So the input is a list of dictionaries like this:
+
+```python
+{
+    "lines": "results/sample1.lines",
+    "words": "results/sample1.words"
+}
+```
+
+Then each of those files will get referenced in the shell command when we do `{input.lines}` and `{input.words}`. The shell interpreter then sees the input as `"results/sample1.lines"` and `"results/sample1.words"`, respectively. 
+
+In contrast, when we use the `expand()` function in the `rule aggregate`, we create one big list of files that looks like this:
+
+```python
+["results/sample1.summary", "results/sample2.summary"]
+```
+
+When we refer to `{input}` in the shell command in this case, the shell interpreter will see the input as a single string with all the file names separated by spaces:
+
+So the below shell directive 
+
+```python
+shell:
+    cat {input} 
+```
+
+becomes
+
+```bash
+cat results/sample1.summary results/sample2.summary
+```
+
+Therfore, in order to work with individual files, we will need to use a loop to iterate over the list of input files. If you look at the `04_aggregate.sh` script, you will see that it already has the for loop written. Now we need to figure out where to put the `{input}`. 
+
+>**Exercise**: Complete the `rule aggregate` and adapt the shell command. Save this has `dev-05.smk`
+
+```python
+rule aggregate:
+    input:
+        expand("results/{sample}.summary", sample = SAMPLES)
+    output:
+        "results/aggregate-summary.tsv"
+    shell:
+        """
+        echo -e "sample\tlines\twords" > {output}
+        for summary_file in {input}; do
+            SAMPLE_NAME=$(basename "$summary_file" .summary)
+            LINES=$(grep -e "^lines\t" "$summary_file" | cut -f2)
+            WORDS=$(grep -e "^words\t" "$summary_file" | cut -f2)
+            echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
+        done
+        """
+```
+
+>**Exercise:** Modify the `rule all` to the correct final file and then test the workflow using dry-run. 
+
+```python
+rule all:
+    input:
+        "results/aggregate-summary.tsv"
+```
 
 ### Other ways to specify inputs
 
