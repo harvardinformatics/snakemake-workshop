@@ -331,6 +331,11 @@ cat results/sample1.summary results/sample2.summary
 
 Therfore, in order to work with individual files, we will need to use a loop to iterate over the list of input files. If you look at the `04_aggregate.sh` script, you will see that it already has the for loop written. Now we need to figure out where to put the `{input}`. 
 
+To recap:
+
+* One-to-one rules (like combine_counts) use wildcards to process one set of files per sample.
+* Many-to-one rules (like aggregate) use an explicit input list (from expand()), combining all files in a single rule execution.
+
 >**Exercise**: Complete the `rule aggregate` and adapt the shell command. Save this has `dev-05.smk`
 
 ```python
@@ -359,9 +364,183 @@ rule all:
         "results/aggregate-summary.tsv"
 ```
 
-### Other ways to specify inputs
+In the following sections, we will introduce some more advanced topics related to Snakemake that allow you to better customize how your workflow runs. It will be lighter on coding exercises because there is a lot to cover.
 
-### Decorations
+## Other ways to specify inputs
 
-## What is the proper scope of a rule?
+
+### Automatic file discovery using glob
+
+So far, we've used wildcards and hardcoded sample names to specify input files.
+
+Here's how we did the hard-coded sample name:
+
+```python
+rule count_lines:
+    input: "data/sample1.txt"
+```
+
+Here's how we did the wild-card sample names:
+
+```python
+SAMPLES = ["sample1", "sample2"]
+rule all:
+    input: expand("results/{sample}.lines", sample=SAMPLES)
+```
+
+Real world workflows need to more flexible ways to specify inputs. Let's do a more advanced form of finding files using `glob()` and `glob_wildcards()`. `glob` is a python function that uses pattern matching to find files and directories. It can use regular expressions or python wildcards (aka `*`). Below is an example of using glob to find all files that match the pattern `*.txt` in the data folder, and then extracting the sample name. This can be plugged directly into the `dev-05.smk` file in place of the first line.
+
+```python
+import glob
+import os
+
+SAMPLES = []
+for txt_file in glob.glob("data/*.txt"):
+    sample_name = os.path.basename(txt_file).replace(".txt", "")
+    SAMPLES.append(sample_name)
+```
+
+Another way to glob files is to use the snakemake-specific glob function called `glob_wildcards()`. This one lets you do in one line what we did in a for loop above.
+
+```python
+SAMPLES = glob_wildcards("data/{sample}.txt").sample
+```
+
+Breaking it down:
+
+1. glob_wildcards("data/{sample}.txt") searches for all files matching the pattern in the data directory.
+2. the {sample} attribute extracts the sample names from the matched file paths.
+3. glob_wildcards("data/{sample}.txt") returns a list of all file paths, while the .sample attribute returns a list of all parts of the file paths without the extension.
+
+You can use this method to generate multiple sample names from a directory of files without having to list them all explicitly. You can glob more than one thing in your filename. For example:
+
+```python
+# Extract both sample name and condition from filenames
+SAMPLES, CONDITIONS = glob_wildcards("data/{sample}_{condition}.txt")
+
+# Create all combinations
+rule all:
+    input: 
+        expand("results/{sample}_{condition}.lines", 
+               zip, sample=SAMPLES, condition=CONDITIONS)
+
+rule count_lines:
+    input: "data/{sample}_{condition}.txt"
+    output: "results/{sample}_{condition}.lines"
+    shell:
+        "wc -l {input} | awk '{{print $1}}' > {output}"
+```
+
+When you are writing your own glob patterns, it's important to double check what is happening by having print statements at each step. You can even create a python file just to practice globbing. For example, you can create a `glob_test.py` file with the following code to make sure that what you're globbing is correct:
+
+```python
+import glob
+import os
+from snakemake.io import glob_wildcards
+
+# Test globbing
+SAMPLES = glob_wildcards("data/{sample}.txt").sample
+print(f"Found samples using glob_wildcards: {SAMPLES}")
+
+SAMPLES = []
+for txt_file in glob.glob("data/*.txt"):
+    sample_name = os.path.basename(txt_file).replace(".txt", "")
+    SAMPLES.append(sample_name)
+
+print(f"Found samples using regular python glob: {SAMPLES}")
+```
+
+Then in your terminal, run `python glob_test.py` to double check that you are getting the right wild cards. If you have a more complicated file pattern that you want to match, LLMs are decent at generating regular expressions to capture the parts of paths that you are interested in. A combination of feeding the LLMs some sample file paths, the part you want to extract, and trial and error with a test script, is a good way to do more advanced globbing.
+
+### Using samplesheets
+
+While globbing for your files is effective, it does have some drawbacks.
+
+1. It requires your files to be in an organized pattern that can be easily matched with wildcards, so it can be less flexible when dealing with complex directory structures or varying file names.
+2. There is no record of the original file paths, which can make debugging more difficult. If you accidentally add a file that you didn't want, but that matches the glob, it'll have downstream effects.  
+3. Files that don't match the glob are not included, which can lead to incomplete analysis if you're not careful. 
+
+Another way to manage your inputs is by listing your samples in samplesheet file and reading that in. Because snakemake is written in Python, you can use any Python code to read in your samplesheet file. To follow along, create a samplesheet called `samplesheet.txt` in the `develop` directory with the following contents:
+
+```
+sample1
+sample2
+```
+
+Now, we can use base python to read that text file at the top of our snakefile. Create a new snakefile based off of `dev-05.smk` and call it `dev-samplesheet.smk`. Replace the first line `SAMPLES = ["sample1", "sample2"]` with:
+
+```python
+SAMPLES = []
+with open("samplesheet.txt", "r") as f:
+    SAMPLES = [line.strip() for line in f.readlines()]
+```
+
+What this does is read the `samplesheet.txt` file line by line, strips away whitespace (`line.strip()`), and stores the result in the `SAMPLES` list. This `SAMPLES` list is identical to `["sample1", "sample2"]`, except that it was generated dynamically from the contents of the `samplesheet.txt` file.
+
+!!! Question
+    What do you think would happen if we had sample3 in our `samplesheet.txt` file? Try it out!
+
+For more complicated samplesheets, you can use the `pandas` library to read in a CSV or other tab-delimited file. This is useful if you have a collection of metadata associated with each sample, or a column of sample names plus a column of file paths. `pandas` comes pre-installed when you install snakemake. Below is an example CSV of forward and reverse reads and how it might be parsed into a workflow:
+
+```
+sample,R1,R2,condition
+sample1,/path/to/data/sample1_R1.fastq,/path/to/data/sample1_R2.fastq,sample
+sample2,/path/to/data/sample2_R1.fastq,/path/to/data/sample2_R2.fastq,sample
+```
+
+Now we read it using pandas and then parse out the sample column to a list. For the file paths, we create a dictionary where the key is the sample name, and the value is the R1 or R2 file path. Then, in the input section, we use a lambda function to dynamically retrieve the correct file paths for each sample.
+
+```python
+import pandas as pd
+
+df = pd.read_csv("samplesheet.txt", sep="\t")
+SAMPLES = df["sample"].tolist()
+R1_FILES = dict(zip(df["sample"], df["R1"]))
+R2_FILES = dict(zip(df["sample"], df["R2"]))
+
+rule all:
+    input:
+        expand("results/{sample}.lines", sample=SAMPLES)
+
+rule process_sample:
+    input:
+        R1=lambda wildcards: R1_FILES[wildcards.sample],
+        R2=lambda wildcards: R2_FILES[wildcards.sample]
+    output:
+        "results/{sample}.lines"
+    shell:
+        "cat {input.R1} {input.R2} | wc -l > {output}"
+```
+
+### Using input functions
+
+Sometimes you may want to use more complex logic to determine the input files for a rule. When you might have a multi-line specification to define a set of files, it can be useful to encapsulate that logic in a function. Snakemake allows you to define input functions that can take wildcards as arguments and return the appropriate file paths. For example, you might want to use logic to check that a file exists before adding it to the list. In the below code, we only want to get the fasta files if both the reverse and forward reads exist:
+
+```python
+# R1_FILES & R2_FILES are dictionaries generated elsewhere, perhaps by reading a samplesheet
+
+def get_input_files(wildcards):
+    sample = wildcards.sample
+    r1 = R1_FILES.get(sample)
+    r2 = R2_FILES.get(sample)
+    if not os.path.exists(r1) or not os.path.exists(r2):
+        raise ValueError(f"No input files found for sample {sample} in R1_FILES or R2_FILES.")
+    return {"R1": r1, "R2": r2}
+
+rule process_sample:
+    input: get_input_files
+    output: "results/{sample}.lines"
+    shell:
+        "cat {input.R1} {input.R2} | wc -l > {output}"
+```
+
+
+
+* params
+* run
+* resources
+* software
+* logs
+* checkpointing
+* profile & config
 
