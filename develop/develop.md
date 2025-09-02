@@ -534,13 +534,16 @@ rule process_sample:
         "cat {input.R1} {input.R2} | wc -l > {output}"
 ```
 
+## Customizing how rules are run
 
+### Params
 
-* params
-* run
-* resources
-* software
-* logs
-* checkpointing
-* profile & config
+### Resources
 
+### Software
+
+### Logs
+
+## Checkpointing
+
+## Writing profiles & Config files
