@@ -534,15 +534,337 @@ rule process_sample:
         "cat {input.R1} {input.R2} | wc -l > {output}"
 ```
 
+## Passing information to external scripts
+
+So far we have just used shell commands in our rules. Sometimes, we might want to use external scripts in python, R, or other languages. To do this, we can use the `script:` directive in our rules in place of `shell:`. Within python or R scripts, you can access Snakemake input, output, and other objects using the `snakemake` object that will be passed to that script's environment. For example:
+
+Here is what it might look like for writing a rule based on a python script
+
+```python
+rule run_python_script:
+    input: "data.csv"
+    output: "results.txt"
+    script: "scripts/my_script.py"
+```
+
+```python
+import pandas as pd
+
+df = pd.read_csv(snakemake.input[0])
+# Do some processing
+df.to_csv(snakemake.output[0])
+```
+
+Similarly, this is how it might look inside an R script:
+
+```R
+library(dplyr)
+
+df <- read.csv(snakemake@input[["data"]])
+# Do some processing
+write.csv(df, snakemake@output[["results"]])
+```
+
+In the following sections, we'll learn about more customization Snakemake can do. Things like params, configs, etc, are also passed to the external scripts through the `snakemake` object and can be accessed in the same way.
+
 ## Customizing how rules are run
+
+In this section we will learn important concepts for controlling the execution of rules in Snakemake. Most bioinformatics workflows are complex and require parameters, compute resources, and software dependencies. Here is where we'll go over the ways to specify that in a rule. 
 
 ### Params
 
+A `params` directive can be used to specify parameters for a rule. These parameters can be accessed within the shell command or script and can be used to customize the behavior of the rule. Params are typically used to define options for tools or scripts that are being called within the rule.
+
+For example, if I wanted to change my shell script to take a parameter, it might look something like this:
+
+```python
+rule param_shell:
+    input: "data.csv"
+    output: "results.txt"
+    params: param1="value"
+    shell:
+        "some_command --param1 {params.param1} {input} > {output}"
+```
+
+If I had an external R script that was running a function, I could pass parameters to it like this:
+
+```python
+rule run_r_script:
+    input: "data.csv"
+    output: "results.txt"
+    params: param1="value"
+    script: "scripts/my_script.R"
+```
+
+And my R script might look like this:
+
+```R
+param1 <- snakemake@params[["param1"]]
+some_function(snakemake@input[["data"]], param1)
+```
+
+In the above, I gave my parameter the name `param1` and now I can access it by that name in the R script. You can have as many parameters as you need, separated by commas, and they can all be accessed via keyword within the script. 
+
+Often, parameters are the `-` or `--` options in command-line tools. For example, in `bwa mem`, you have the option of specifying `-t` for number of threads and `-v` for verbosity, amont others. The rule might look something like this:
+
+```python
+rule align_sequences:
+    input: "raw_data/{sample}.fastq"
+    output: "aligned/{sample}.bam"
+    params:
+        verbosity=4,
+        num_threads=4,
+    shell:
+        "bwa mem -t {params.num_threads} -v {params.verbosity} reference.fasta {input} > {output}"
+
+```
+
+Note that because of the way we named these parameters in the rule, it actually makes the command line more readable. 
+
+Importantly, just because we put the number of threads as a parameter, that doesn't mean that the rule will actually run with that many threads. Parameters are just keywords that you tell the tool to use; they don't enforce any behavior on their own. In the next section, we will see how to specify the actual compute resources that a rule should use. If we try to run this rule on a machine that doesn't have the required number of CPUs, it may run more slowly because bwa is expecting 4 CPUs. 
+
 ### Resources
+
+Snakemake has a built-in directive called `threads` that works for both resource allocation and passing that parameter to the shell. You can specify the number of threads a rule should use like this:
+
+```python
+rule my_rule:
+    input: "data.csv"
+    output: "results.txt"
+    threads: 4
+    shell:
+        "some_command {input} -t {threads} > {output}"
+```
+
+This directive automatically sets the `cpus_per_task` to the number 4 and also passes it to the shell command. We can also reserve arbitrary resources like memory using the `resources` directive:
+
+```python
+rule my_rule:
+    input: "data.csv"
+    output: "results.txt"
+    threads: 4
+    resources:
+        mem = 24 GB,
+        runtime = 1 h
+    shell:
+        "some_command {input} -t {threads} > {output}"
+```
 
 ### Software
 
+Another important component of a workflow is software dependencies. So far, we have been using basic bash or python code (or pseudocode), but in practice, we will be using specific software tools and libraries. One of the benefits of workflow managers is that you can specify a totally separate software environment for each rule, including different versions of software or even different programming languages. This allows you to keep your rules modular and contained so that they can be easily reused or modified without affecting other parts of the workflow.
+
+In Snakemake, you can specify what software to use for the rule using either the `conda` directive or the `container` directive.
+
+#### Conda
+
+You can use the `conda` directive in a few ways. The first way is to specify an existing conda environment that has already been created. You can reference the environment by name or by the path to the environment. 
+
+```python
+rule some_rule:
+    input: "data.csv"
+    output: "output.txt"
+    conda: "my_env_name"
+    script: "scripts/my_script.R"
+```
+
+```python
+rule some_rule:
+    input: "data.csv"
+    output: "output.txt"
+    conda: "/path/to/my_env_name"
+    script: "scripts/my_script.R"
+```
+
+However, doing this means that you need to manage the conda environment yourself. This is an issue if you want to run this script on a different computer where the environment doesn't yet exist. Another way to specify a conda environment is to use a `yaml` file that contains the requirements for the environment you want the rule to run in. You can get the `yaml` file by writing it yourself, like:
+
+```yaml
+name: my_env_name
+channels:
+  - conda-forge
+dependencies:
+  - pandas=1.3.0
+  - numpy=1.21.0
+  - scikit-learn=0.24.2
+```
+
+You would then save that yaml file in your project directory. Perhaps under a folder named `envs`. And then you would use it in your Snakemake rule like this:
+
+```python
+rule some_rule:
+    input: "data.csv"
+    output: "output.txt"
+    conda: "envs/my_env_name.yaml"
+    script: "scripts/my_script.py"
+```
+
+What this does is causes Snakemake to create a temporary conda environment based on the specifications in the `yaml` file. This environment will be activated whenever the rule is executed, ensuring that all the required dependencies are available. This environment will be cached so that any other rule that uses it or any subsequent execution of the same rule can reuse it without having to recreate it. 
+
+The major benefit of using this yaml file is that it will always travel with your project so that it essentially makes the environment documented and portable. By specifying the version numbers of each software package, you can better ensure that your workflow will have consistent behavior. 
+
+#### Containers
+
+Containers are a way of packaging all the requirements of a software into one image file. Containers are run by software called Docker or Singularity. You can usually find container images on dockerhub or the biocontainers registry. Here is an example of a rule using the software `mafft` from the biocontainers registry.
+
+```python
+rule mafft:
+    input: "data.fasta"
+    output: "data_aligned.fasta"
+    container: "biocontainers/mafft:7.475--hdfd78af_0"
+    shell:
+        "mafft {input} > {output}"
+```
+
+<!-- can the full galaxyproject url be used for singularity?  e.g. https://depot.galaxyproject.org/singularity/mafft:7.525--h031d066_1 -->
+
+Once you have defined your rule with the container directive, you can then run snakemake with the option `--sdm conda singularity`. (sdm stands for "software deployment method") Then, depending on whether you've used the `conda` or `container` directive in the rule, Snakemake will automatically create and manage the necessary environments for you.
+
+!!! Tip
+    In case you don't want to remember to run snakemake with the `--sdm conda singularity` option every time, you can create a configuration file (e.g., `config.yaml`) and specify the default software deployment method there. We will cover config files in more detail later.
+
+
+### Exercise
+
+**Exercise:** Let's go back to our `combine_counts` rule. Imagine that your collaborator decided that they wanted to combine counts in a different way, using the program `pandas`. Also, your collaborator wants to add an option to return a CSV instead of a TSV. Thankfully, your collaborator has provided you with a python file. The python file is below (you can also find it in the `scripts` folder). Additionally, you've been given a `yaml` file for a conda environment `combine_counts.yml`. And following that is the skeleton of the `combine_counts` rule. 
+
+```python
+# scripts/combine_counts.py
+import pandas as pd
+
+# Access Snakemake variables directly (no command line args needed!)
+lines_file = snakemake.input.lines
+words_file = snakemake.input.words
+output_file = snakemake.output[0]
+output_format = snakemake.params.output_format
+
+# Read the count values
+with open(lines_file, 'r') as f:
+    line_count = int(f.read().strip())
+
+with open(words_file, 'r') as f:
+    word_count = int(f.read().strip())
+
+# Create DataFrame
+data = {
+    'metric': ['lines', 'words'],
+    'count': [line_count, word_count]
+}
+df = pd.DataFrame(data)
+
+# Write output
+if output_format == 'csv':
+    df.to_csv(output_file, index=False)
+else:  # tsv format
+    df.to_csv(output_file, sep='\t', index=False)
+```
+
+As a refresher, this is the original combine_counts rule:
+
+```python
+rule combine_counts:
+    input:
+        lines="results/{sample}.lines",
+        words="results/{sample}.words"
+    output:
+        summary="results/{sample}.summary"
+    shell:
+        """
+        echo -n "lines\t" > {output.summary}
+        cat {input.lines} >> {output.summary}
+        echo -n "words\t" >> {output.summary}
+        cat {input.words} >> {output.summary}
+        """
+```
+
+Your task is to modify the `combine_counts` rule to do the following:
+
+0.  create a new snakefile called `dev-customization.smk` and copy over the contents of `dev-05.smk`. Then we will work with the `combine_counts` rule for the next items. 
+1.  modify the `shell` command to call the `combine_counts.py` script instead of using shell commands.
+2.  add a parameter called `output_format` with a default value of `tsv`.
+3.  add a conda environment specification to the `envs/combine_counts.yml` file.
+4.  add a default resource of 1 thread and 1024 MB of memory
+
+Solution
+
+```python
+rule combine_counts:
+    input:
+        lines="results/{sample}.lines",
+        words="results/{sample}.words"
+    output:
+        "results/{sample}.summary"
+    params: output_format="tsv"
+    threads: 1
+    resources:
+        mem_mb=1024
+    conda:
+        "envs/combine_counts.yml"
+    script:
+        "scripts/combine_counts.py"
+```
+
 ### Logs
+
+Our final topic on this section is the `logs` directive. This allows you to record log file for each individual rule. In fact, as we will see soon, it will allow you to record log files for each instance of a rule (aka each time a rule runs on a different piece of data). But first, let's discuss how to implement logging in our Snakemake workflow.
+
+The first thing we need to do is to add the directive `log` to the rule. Then we need to specify a place for the log to go. Typically, this is a folder called "logs" that you create in your project directory. Importantly, this folder needs to be manually created before you run your snakemake workflow or else the program won't be able to find the path to save the log files. 
+
+```python
+rule aggregate:
+    input:
+        expand("results/{sample}.summary", sample = SAMPLES)
+    output:
+        "results/aggregate-summary.tsv"
+    log:
+        "logs/aggregate.log"
+    shell:
+        """
+        echo -e "sample\tlines\twords" > {output}
+        for summary_file in {input}; do
+            SAMPLE_NAME=$(basename "$summary_file" .summary)
+            LINES=$(grep -e "^lines\t" "$summary_file" | cut -f2)
+            WORDS=$(grep -e "^words\t" "$summary_file" | cut -f2)
+            echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
+        done &> {log}
+        """
+```
+
+We have also modified the shell command. This is because just writing the log file is not enough. You need to make sure that the std out and std err streams of your command are properly directed to the file. std out is what is printed to the screen if you were to run this in a terminal window. std err is what is printed if there is an error. By adding `&> {log}` to the end of the command, you ensure that both streams are captured in the log file. 
+
+Other ways of incorporating a log into your run is to use the `{log}` variable if your command line tool already has an option for writing log. For example:
+
+```python
+rule abc:
+    input: "input.txt"
+    output: "output.txt"
+    log: "logs/abc.log"
+    shell: "somecommand --log {log} {input} {output}"
+```
+
+If you are running a script, you can use the same redirect to write any print statements to the log:
+
+```python
+rule print_log:
+    input: "input.txt"
+    output: "output.txt"
+    log: "logs/print_log.log"
+    shell: "python scripts/print_log.py {input} {output} &> {log}"
+```
+
+Another way to do this is to use the built-in logging library in python or the logger package in R to write to the log files. So within your python or R script, you would have lines that are like print statements except they will be time-stamped and written to your choice of std out or std err. This gives you more fine-grained control over how your script records itself. 
+
+In the above rule, `aggregate` only runs once, so we can just name the log file based on the rule. However, the other rules run multiple times, based on the number of samples. We can add wildcards to the log file name so that each instance of the rule gets its own log file.
+
+```python
+rule count_lines:
+    input: "data/{sample}.txt"
+    output: "results/{sample}.lines"
+    log: "logs/{sample}_count_lines.log"
+    shell:
+        "wc -l {input} | awk '{{print $1}}' > {output}"
+```
+
+It is good practice to name your logs based on the rule, so that you know where it is coming from. In a more complex workflow, you can instead have directories for each rule's logs. Just make sure to create those directories first (perhaps write a rule or add python code to your snakefile to create all log directories!).
 
 ## Checkpointing
 
