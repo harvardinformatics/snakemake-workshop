@@ -15,3 +15,6 @@ rule count_words:
     output: "results/{sample}.words"
     shell:
         "wc -w {input} | awk '{{print $1}}' > {output}"
+
+rule clean:
+    shell: "rm -r results/*"

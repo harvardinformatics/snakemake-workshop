@@ -8,3 +8,6 @@ rule count_lines:
     output: "results/{sample}.lines"
     shell:
         "wc -l {input} | awk '{{print $1}}' > {output}"
+
+rule clean:
+    shell: "rm -r results/*"

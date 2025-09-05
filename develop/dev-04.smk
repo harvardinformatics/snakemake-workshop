@@ -29,3 +29,6 @@ rule combine_counts:
         echo -n "words\t" >> {output.summary}
         cat {input.words} >> {output.summary}
         """
+
+rule clean:
+    shell: "rm -r results/*"
