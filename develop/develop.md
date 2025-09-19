@@ -822,9 +822,10 @@ rule combine_counts:
         words="results/{sample}.words"
     output:
         "results/{sample}.summary"
-    params: output_format="tsv"
-    threads: 1
-    resources:
+    params: 
+        output_format="tsv"
+        threads: 1
+        resources:
         mem_mb=1024
     conda:
         "envs/combine_counts.yml"
