@@ -53,11 +53,11 @@ rule count_lines:
     input: "data/sample1.txt"
     output: "results/sample1.lines"
     shell: 
-        "wc -l {input} | awk '{{print $1}}' > {output}"
+        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
 !! Note
-    The `shell` directive allows you to run any shell command, and you can use `{input}` and `{output}` to refer to the input and output files of the rule. The double curly braces `{{ }}` are used to escape the curly braces in the `awk` command, so that Snakemake does not interpret them as placeholders.
+    The `shell` directive allows you to run any shell command, and you can use `{input}` and `{output}` to refer to the input and output files of the rule. The double curly braces `#123;&#123 &#125;&#125;` are used to escape the curly braces in the `awk` command, so that Snakemake does not interpret them as placeholders.
 
 In practice, whether you want to directly write the command in your Snakemake file or call an external script is up to you. In this workshop, we will directly write the commands in the Snakemake file because they are short and easy to read. Directly writing the command in the `shell:` section has the benefit of making the workflow more self-contained and easier to understand. On the other hand, calling an external script is useful for running a more complex command. Note that if you do find yourself making a Snakemake workflow with few rules that all refer to complex scripts, it may be worth considering breaking up that complex script into multiple steps/rules. We will discuss this later in the section "What is the proper scope of a rule?". 
 
@@ -82,7 +82,7 @@ rule count_lines:
     input: "data/sample1.txt"
     output: "results/sample1.lines"
     shell:
-        "wc -l {input} | awk '{{print $1}}' > {output}"
+        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ``` 
 
 Let's leave everything hard coded for now so that we can focus on getting the workflow working. Soon, we will learn about how to use wildcards so that these rules can be generalized and take multiple files. 
@@ -160,7 +160,7 @@ rule count_lines:
     input: "data/{sample}.txt"
     output: "results/{sample}.lines"
     shell:
-        "wc -l {input} | awk '{{print $1}}' > {output}"
+        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
 The part of the file path that we are changing for the wildcards is the part where the filenames go `sample1`, `sample2`, etc. This is the variable part of the filename. However, just because we created a wildcard doesn't mean that Snakemake will scan your filesystem to look for files that match that pattern. The wildcards function only as a way to define the structure of the input and output file paths. In our case, we will need to provide a list of samples for Snakemake to process. 
@@ -193,7 +193,7 @@ rule count_lines:
     input: "data/{sample}.txt"
     output: "results/{sample}.lines"
     shell:
-        "wc -l {input} | awk '{{print $1}}' > {output}"
+        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
 Run `snakemake -s dev-02.smk -R clean --cores 1` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dry-run`. If that looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
@@ -229,7 +229,7 @@ rule count_words:
     input: "data/{sample}.txt"
     output: "results/{sample}.words"
     shell:
-        "wc -w {input} | awk '{{print $1}}' > {output}"
+        "wc -w {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
 The next shell script we want to add to our Snakemake workflow is the `03_combine_counts.sh` script, which will combine the line and word counts for each sample into a single output file for each sample. This rule will take as an input the line and word count files for each sample. The final output will now be a `.summary` file for each sample. As before, we will need to edit both `rule all` as well as add the new `rule combine_counts`. Additionally, we will have two inputs for the `combine_counts` rule: the line count file and the word count file. 
@@ -453,7 +453,7 @@ rule count_lines:
     input: "data/{sample}_{condition}.txt"
     output: "results/{sample}_{condition}.lines"
     shell:
-        "wc -l {input} | awk '{{print $1}}' > {output}"
+        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
 When you are writing your own glob patterns, it's important to double check what is happening by having print statements at each step. You can even create a python file just to practice globbing. For example, let's create a `glob_test.py` file with the following code to make sure that what we're globbing is correct:
@@ -891,7 +891,7 @@ rule count_lines:
     output: "results/{sample}.lines"
     log: "logs/{sample}_count_lines.log"
     shell:
-        "wc -l {input} | awk '{{print $1}}' > {output}"
+        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
 It is good practice to name your logs based on the rule, so that you know where it is coming from. In a more complex workflow, you can instead have directories for each rule's logs. Just make sure to create those directories first (perhaps write a rule or add python code to your snakefile to create all log directories!).
