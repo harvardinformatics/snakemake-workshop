@@ -2,77 +2,7 @@
 
 Welcome to today's workshop about the Snakemake workflow management software. This is day 1 of 2, where we'll be focusing on how to get pre-made workflows up and running. We'll touch on the basics of Snakemake's syntax and terminology, and learn how to debug some common problems. We'll also learn how to use Snakemake in conjunction with SLURM to really scale up your analyses.
 
-But first, you'll need to download the workshop repository! You can do this in a couple of ways.
-
-## Getting started
-
-### Downloading the workshop
-
-First, login to the cluster and navigate to the location in which you want to download the repo. Since this is a temporary workshop, feel free to use the SCRATCH space (`/netscratch/YOUR_LAB/Lab/USERNAME`). 
-
-#### 1. If you are familiar with *git*:
-
-If you'd like to use the `git` command line tool, you can clone the repo as follows:
-
-```bash
-git clone https://github.com/harvardinformatics/snakemake-workshop.git
-```
-
-#### 2. If you'd rather not use *git*:
-
-You can also just download the repository archive directly and extract it:
-
-```bash
-wget https://github.com/harvardinformatics/snakemake-workshop/archive/refs/heads/main.zip
-unzip snakemake-workshop
-```
-
-Either way, after you have the repo downloaded, enter the workshop directory:
-
-```bash
-cd snakemake-workshop
-```
-
-### Installing Snakemake
-
-Snakemake is the workflow management software we'll be using today. We recommend installing it through the conda/mamba software managers (For more info about conda and mamba, see [our tutorial]()).
-
-With `conda`, you should be able to setup an environment for Snakemake with:
-
-```bash
-conda create -n snakemake-env -c conda-forge snakemake-minimal
-```
-
-Confirm the prompts on the screen. Then when the environment is created, activate it:
-
-```bash
-conda activate snakemake-env
-```
-
-You should be able to type `snakemake` and see the message:
-
-```
-Error: No Snakefile found, tried Snakefile, snakefile, workflow/Snakefile, workflow/snakefile
-```
-
-This means snakemake is installed and ready to run! If you see any variation of the error message `command not found`, then something has gone wrong with your installation. Make sure your envrionment is activated (you should see `(snakemake-env)` at the front of your prompt), and if it still doesn't work let us know!
-
-#### snakemake vs. snakemake-minimal
-
-If you search for the snakemake package on conda-forge, you'll see several come up, with the two most popular being `snakemake` and `snakemake-minimal`. These will both install snakemake into your environment, however `snakemake` includes many extra dependencies, including those for remote execution and storage. Since our most likely use case is running on the cluster, we won't need those dependencies so we can stick with `snakemake-minimal`. But if you do ever need to store data or run workflows on places like AWS or Google, remember to use `snakemake`.
-
-<!-- I think we should just have them install snakemake regular. Are we trying to save space here? -->
-
-### Working with text files on the cluster
-
-This workshop we will be editing text files on the cluster, which means you must either be comfortable using a text editor on the command line, or you must be able to connect to the cluster with a remote desktop client such as [VSCode](), or edit the files on a local OpenOnDemand instance.
-
-If you want to use a text editor on the command line, we recommend using `nano`, which is a great beginner text editor. You open a file using the command `nano <filename>`. This will change your terminal to a text editor interface. You will need to use your arrow keys to navigate the text (not your mouse/clicking). You can type normally to add/change text. When you're done editing, you can save the file by pressing (on a PC) <!-- not sure -->, then `Enter`. On a Mac your keyboard shortcut for saving is `Ctrl + O`, then `Enter`. To exit, press <!-- something --> on a PC or `Ctrl + X` on a Mac, then `Enter`.
-
-If you want to use a the text editor VSCode to edit files on the cluster, you can follow the instructions on the [FASRC Docs page](https://docs.rc.fas.harvard.edu/kb/vscode-remote-development-via-ssh-or-tunnel/) on how to set that up. You can either run VSCode in your browser, or you can install it locally and connect to the cluster. Give this a try, but if it doesn't work, just use `nano` for now and we can try to troubleshoot it later.
-
-You can also open the files by using remote desktop or RStudio server. To start an OpenOnDemand session, you follow the directions on this [FASRC Docs page](https://docs.rc.fas.harvard.edu/kb/virtual-desktop/). <!-- more instructions here -->
-
+If you haven't already, please follow the [Getting Started](/index.md) section to download the workshop materials and install Snakemake, as well as choose a text editor to work with on the cluster.
 
 ## Workflows
 
@@ -90,7 +20,7 @@ Or:
 
 ![Example workflow diagram](../img/workflow-demo-01.drawio.png)
 
-<!-- add mention that this is a rulegraph -->
+This visualization of a workflow is called a **rule graph**. In this image, the sheafs of paper represent files (annotated with their file extensions) and the circles represent computational actions performed on those files (annotated with the description of that action). 
 
 You can see that each of these steps requires input files, produces output files, and likely has an associate piece of software or a custom script written by the researcher. These steps and the tools associated with them are your analytical workflow - **the output of one step becomes the input of the next step**.
 
@@ -108,11 +38,9 @@ One of the most common way to automate analyses prior to workflow languages was 
 for locus in /path/to/loci/*.fasta
 do
     locus_base=$(basename "$locus" .fasta)
-    mafft "$locus" > /path/to/alignments/"$locus_base".aln
+    mafft "$locus" > /path/to/alignments/"$locus_base".fasta
 done
 ```
-
-<!-- aln files are not represented in the rule graph in your example workflow diagram. Perhaps these bash examples should represent a specific step in that diagram? -->
 
 One might (and should) save this set of commands as a script for reproducibility, possibly calling it something like `04_run_mafft.sh`. That way when you look back at your analysis, you'll be able to easily remember what commands you ran and be able to run them again if needed.
 
@@ -209,11 +137,9 @@ However, you'll also notice the word `{locus_id}` in curly brackets in both the 
 
 Snakemake works backwards from a target rule, usually called `rule all:` and tries to complete the `output:` directives for each rule. Importantly, `output:` directives are interpreted as a **list of files**. The problem is that we can't always type out the entire list of files output for each rule, or in some cases we may not even know the names of the output files.
 
-Enter wildcards. Wildcards are essential to know about when running a workflwo so you know how to setup your input files. Wildcards are patterns that Snakemake uses to find and define file names. Recall in our job array where we used a **manifest** file and then parsed out a locus ID from that list of files. This locus ID is a wildcard.
+Enter wildcards. Wildcards are essential to know about when running a workflow so you know how to setup your input files. Wildcards are patterns that Snakemake uses to find and define file names. Recall in our job array where we used a **manifest** file and then parsed out a locus ID from that list of files. This locus ID is a wildcard.
 
 The wildcards will be determined by the pipeline inputs, but are parsed by the workflow itself. **This means its crucial to follow the file naming conventions specifed in the documentation of the workflow.**
-
-<!-- I think this section could benefit from an example of how naming conventions in wildcards trace the lineage of files through the workflow -->
 
 You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `locus1`, `locus2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it need to generate. 
 
@@ -330,7 +256,7 @@ Let's generate both to see the difference.
 > **Exercise:** Generate the rulegraph for the demo workflow:
 
 ```bash
-snamekame -j 1 -s demo --configfile <config file name> --rulegraph
+snakemake -j 1 -s demo --configfile <config file name> --rulegraph
 ```
 
 <details><summary>Command breakdown</summary>
@@ -439,7 +365,6 @@ Viewing that rulegraph and DAG of your workflow can be extremely helpful in unde
 
 ### Example workflows and their rulegraphs
 
-
 <!-- good time for the 10/15 minute break -->
 
 ## Debugging workflows
@@ -495,8 +420,6 @@ snakemake -j 1 -s demo.smk --configfile debugging-demos/02-config.yml --dryrun
 ```
 
 > **Exercise:** Track down the problem with the above command and fix it so the dry run completes successfully.
-
-<!-- maybe a section about ambiguous wildcards, but that's usually a design problem -->
 
 ### Debugging during execution
 
@@ -558,11 +481,10 @@ In order for Snakemake and SLURM to know how to submit these jobs, we have to gi
 
 - Memory
 - CPUs
-- Partition
+- Partition/queue
 - Runtime
 
-<!-- mention account?? -->
-<!-- need to mention threads? -->
+Depending one what cluster you are using, you may also need to specify other resources, such as `account`. 
 
 While **partition** and **CPUs** are somewhat deterministic, **memory** and **runtime** usually require use to give best estimates. This can be a tricky task, and there aren't hard and fast rules for determining this even outside the context of Snakemake.
 
