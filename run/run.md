@@ -26,7 +26,7 @@ You can see that each of these steps requires input files, produces output files
 
 Importantly, each step needs to be done for each sample or gene. For steps 1 and 2, you may have to run whatever tool you use for every sample in your data set, maybe dozens or even hundreds of times. For steps 3-7, you may have to run whatever tool you use for every gene in your analysis, possibly thousands of times.
 
-Let's take a look at a single step, (4) align orthologous sequences. If we use a common program, such as [MAFFT](), which aligns a single sequence at a time, what are our possible solutions to automate this for our potentially thousands of sequences?
+Let's take a look at a single step, (4) align orthologous sequences. If we use a common program, such as [MAFFT :octicons-link-external-24:](https://en.wikipedia.org/wiki/MAFFT){ target="_blank" }, which aligns a single sequence at a time, what are our possible solutions to automate this for our potentially thousands of sequences?
 
 ### A bash script for every step
 
@@ -42,9 +42,20 @@ do
 done
 ```
 
+??? example "Code breakdown"
+
+    | Code                                                       | Description |
+    | ---------------------------------------------------------- | ----------- |
+    | `#!/bin/bash`                                              | The syntax of using `#!` at the beginning of a script is called a 'shebang'. When placed at the beginning of a script, the path following is the path to the program that should interpret the script (in this case, bash). |
+    | `for locus in /path/to/loci/*.fasta`                       | This tells bash to loop over every file that has a `.fasta` file extension in the `/path/to/loci/ directory`. It assigns the current file name to the variable `locus`. |
+    | `do`                                                       | Bash keyword for defining code blocks. |
+    | `locus_base=$(basename "$locus" .fasta)`                   | This uses the basename command to store the filename as a string without the `.fasta` extension. |
+    | `mafft "$locus" > /path/to/alignments/"$locus_base".fasta` | This runs mafft on the current locus file and stores the resulting alignment using the same filename in a different folder. |
+    | `done`                                                     | Bash keyword for ending code blocks. |
+
 One might (and should) save this set of commands as a script for reproducibility, possibly calling it something like `04_run_mafft.sh`. That way when you look back at your analysis, you'll be able to easily remember what commands you ran and be able to run them again if needed.
 
-Of course, this is just one step in our workflow. We would likely need a script for each step: `01_download_samples.sh`, `02_extract_genes.sh`, ... and so on. Then we'd have to run them each individually and deal with individual errors, or perhaps write a meta-script that runs each of them sequentially.
+Of course, this is just one step in our workflow. We would likely need a script for each step: `01_download_samples.sh`, `02_extract_genes.sh`, ... and so on. Then we'd have to run them each individually and deal with individual errors, or perhaps write a meta-script that runs each of them sequentially as a sort of pseudo-workflow script.
 
 There are two problems with this approach:
 
@@ -53,7 +64,7 @@ There are two problems with this approach:
 
 ### Job arrays
 
-**Job arrays** can help with the parallelization problem. A job array is a feature of most modern **job schedulers** that are installed on institutional clusters. A job scheduler is a a program that handles user requests for resources and allocates compute nodes based on resources available. On the Cannon cluster at Harvard, we use the [SLURM]() job scheduler.
+**Job arrays** can help with the parallelization problem. A job array is a feature of most modern **job schedulers** that are installed on institutional clusters. A job scheduler is a a program that handles user requests for resources and allocates compute nodes based on resources available. On the Cannon cluster at Harvard, we use the [SLURM :octicons-link-external-24:](https://slurm.schedmd.com/overview.html){ target="_blank" } job scheduler.
 
 In a typical SLURM job, you would write a SLURM script to submit a request to run some command on a compute node:
 
@@ -65,6 +76,16 @@ In a typical SLURM job, you would write a SLURM script to submit a request to ru
 
 mafft locus1.fa > alignments/locus1.aln
 ```
+
+??? example "Code breakdown"
+
+    | Code                                      | Description |
+    | ----------------------------------------- | ----------- |
+    | `#!/bin/bash`                             | The syntax of using `#!` at the beginning of a script is called a 'shebang'. When placed at the beginning of a script, the path following is the path to the program that should interpret the script (in this case, bash). |
+    | `#SBATCH --cpus-per-task=1`               | When a script is submitted as input to SLURM, lines that begin with `#SBATCH` are interpreted as SLURM options. This one specifies how many CPU are requested per task. |
+    | `#SBATCH --mem=1G `                       | When a script is submitted as input to SLURM, lines that begin with `#SBATCH` are interpreted as SLURM options. This one specifies how much memory should be allotted for the job. |
+    | `#SBATCH --time=00:10:00`                 | When a script is submitted as input to SLURM, lines that begin with `#SBATCH` are interpreted as SLURM options. This one specifies how much time is requested to run the job. |
+    | `mafft locus1.fa > alignments/locus1.aln` | This runs mafft on a single file and saves the result to a file with redirection (`>`). |
 
 Here, the `#SBATCH` comments give information to the SLURM scheduler. **Job arrays** allow us to scale this up, running multiple inputs on the same command, in parallel if resources are available.
 
@@ -95,21 +116,36 @@ locus_base=$(basename "$locus" .fasta)
 mafft "$locus" > alignments/"$locus_base".aln
 ```
 
+??? example "Code breakdown"
+
+    | Code                                      | Description |
+    | ----------------------------------------- | ----------- |
+    | `#!/bin/bash`                             | The syntax of using `#!` at the beginning of a script is called a 'shebang'. When placed at the beginning of a script, the path following is the path to the program that should interpret the script (in this case, bash). |
+    | `#SBATCH --cpus-per-task=1`               | When a script is submitted as input to SLURM, lines that begin with `#SBATCH` are interpreted as SLURM options. This one specifies how many CPU are requested per task. |
+    | `#SBATCH --mem=1G `                       | When a script is submitted as input to SLURM, lines that begin with `#SBATCH` are interpreted as SLURM options. This one specifies how much memory should be allotted for the job. |
+    | `#SBATCH --time=00:10:00`                 | When a script is submitted as input to SLURM, lines that begin with `#SBATCH` are interpreted as SLURM options. This one specifies how much time is requested to run the job. |
+    | `#SBATCH --array=1-1453`                  | When a script is submitted as input to SLURM, lines that begin with `#SBATCH` are interpreted as SLURM options. This one specifies that 1453 tasks will be run in a job array. |
+    | `locus=$(sed -n "${SLURM_ARRAY_TASK_ID}p" loci.txt)` | This reads the manifest file with a tool called `sed` and gets the file name based on the line number in the file and the SLURM task id.
+    | `locus_base=$(basename "$locus" .fasta)` |  This uses the basename command to store the filename as a string without the `.fasta` extension. |
+    | `mafft "$locus" > alignments/"$locus_base".aln` | This runs mafft on the current locus file and stores the resulting alignment using the same filename in a different folder. |
+
 In this case, we specify that this job array will create 1453 tasks by using `#SBATCH --array=1-1453`. Then, in our script, we use a command called `sed` to pull the locus ID as the line number in the manifest file and use that ID as the basis for input and ouput from our alignment program. Then in the alignment program itself, instead of specifying an exact file name, we use the file name constructed from the locus ID. This will be constructed and submitted as a separate task for all 1453 loci.
 
 Job arrays effectively solve the parallelization problem: as many of the tasks that there are resources available for will be submitted at once. However, you would still need to maintain a separate job array script for each step of the workflow.
 
 ### Workflow languages
 
-Workflow languages try to lower the development and maintenance costs of compiling steps into a workflow while easily paralellizing tasks and even integrating with job schedulers. They also add infrastracture that allows one to start and stop your workflow, resume workflows if stopped or an error is encountered, and add samples to the workflow potentially without having to re-run all steps for all samples.
+Workflow languages try to lower the development and maintenance costs of compiling steps into a workflow while easily paralellizing tasks and even integrating with job schedulers. They also add infrastracture that allows one to start and stop the workflow, resume workflows if stopped or an error is encountered, and add samples to the workflow potentially without having to re-run all steps for all samples.
 
-Today, of course, we'll be talking about [**Snakemake**](), but there are other workflow languages out there, including [Nextflow]() and [Common Workflow Language]().
+Today, of course, we'll be talking about [**Snakemake** :octicons-link-external-24:](https://snakemake.readthedocs.io/en/stable/){ target="_blank" }, but there are other workflow languages out there, including [Nextflow :octicons-link-external-24:](https://www.nextflow.io/docs/latest/index.html){ target="_blank" } and [Common Workflow Language :octicons-link-external-24:](https://www.commonwl.org/){ target="_blank" }.
 
 ## Snakemake
 
 Snakemake is a scripting language built from Python (with a bit of YAML formatting mixed in). Its philosophy is based on the standard `make` tool used commonly when building software: there should be an end result of the script which should be a file or files. These are the **targets**, and the workflow builds from the target backwards. It is essentially asking itself, "What do I need to do to produce these target files?"
 
 In our example of a phylogenomic analysis, the target would be the final `.csv` file with the results of the rate analysis. Snakemake would see that as the target and look backwards: Are all the gene trees that it was expecting to be there actually there? If not, then it will look backwards: Are all the alignments that it was expecting to be there actually there? And so on until it encounters a step where all the outputs exist, from which it would start moving forward through the pipeline.
+
+![Annoted example workflow diagram with arrows depicting that output from each step is the target of the previous step and the input of the next step](../img/workflow-demo-02.drawio.png)
 
 ### Rules
 
@@ -127,7 +163,7 @@ rule mafft_align:
 
 At the bare minimum, rules require both **input** and **output** along with the command to run. Here this comes in the form of a **shell directive** , which means snakemake will take whatever is typed in there and plug directly into the shell. Other ways to run commands are with **run** and **script** directives, which we'll learn more about in the Develop part of the workshop. The ability to run different types of commands with access to the variables defined in the workflow script is one of Snakemake's big advantages over bash scripts or job arrays.
 
-There are also other directives that can be added to a rule, such as `params:`, `log:`, `resources:`, and so on. Again, we will cover these more during the Develop workshop.
+There are also other directives that can be added to a rule, such as `params:`, `log:`, `resources:`, and so on. Again, we will cover these more during the Develop portion of the workshop.
 
 You'll notice that the use of curly brackets `{}` is prevalent in Snakemake. In the `shell:` directive, `{input}` and `{output}` mean that Snakemake will directly plug in whatever is defined in the `input:` and `output:` directives into the shell command.
 
@@ -139,6 +175,14 @@ Snakemake works backwards from a target rule, usually called `rule all:` and tri
 
 Enter wildcards. Wildcards are essential to know about when running a workflow so you know how to setup your input files. Wildcards are patterns that Snakemake uses to find and define file names. Recall in our job array where we used a **manifest** file and then parsed out a locus ID from that list of files. This locus ID is a wildcard.
 
+```
+loci/locus1.fasta
+loci/locus2.fasta
+loci/locus3.fasta
+...
+loci/locus1453.fasta
+```
+
 The wildcards will be determined by the pipeline inputs, but are parsed by the workflow itself. **This means its crucial to follow the file naming conventions specifed in the documentation of the workflow.**
 
 You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `locus1`, `locus2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it need to generate. 
@@ -147,7 +191,7 @@ You may already have run into naming conventions in your own scripts which help 
 
 Every Snakemake workflow you run will have different inputs and parameters required to run it. Hopefully these are very well documented in the workflow's documentation.
 
-All of the inputs and parameters should be specified with a workflow **config file**. This is a [YAML formatted]() text file, which means options are usually specfied as `<option_name>: <value>`. For instance, for the very basic `mafft_align` rule above, the config file would need to specify the path to the manifest file, listing all the input fasta files:
+All of the inputs and parameters should be specified with a workflow **config file**. This is a [YAML formatted :octicons-link-external-24:](https://en.wikipedia.org/wiki/YAML){ target="_blank" } text file, which means options are usually specfied as `<option_name>: <value>`. For instance, for the very basic `mafft_align` rule above, the config file would need to specify the path to the manifest file, listing all the input fasta files:
 
 ```yaml
 manifest_file: path/to/manifest.txt
@@ -165,15 +209,14 @@ Let's run a demo workflow. We've prepared a very simple workflow that counts the
 snakemake -j 1 -s demo.smk
 ```
 
-<details><summary>Command breakdown</summary>
+??? example "Command breakdown"
 
-| Command line option | Description |
-| ------------------- | ----------- |
-| `snakemake`         | The call to the Snakemake program |
-| `-j 1`              | This tells the workflow to use 1 processing core |
-| `-s demo.smk`       | The path to the workflow script file |
+    | Command line option | Description |
+    | ------------------- | ----------- |
+    | `snakemake`         | The call to the Snakemake program |
+    | `-j 1`              | This tells the workflow to use 1 processing core |
+    | `-s demo.smk`       | The path to the workflow script file |
 
-</details>
 
 What happened? We got an error referring to something about a sample_sheet. This is because we haven't done anything to prepare our particular input files for this workflow. Snakemake scripts should be generalizeable to any set of similar inputs, so we need to know how to prepare our own inputs to run through the file. The workflow documentation is crucial for this.
 
@@ -213,17 +256,15 @@ Now that we've followed the documentation about how to setup the inputs for the 
 snakemake -j 1 -s demo --configfile <config file name> --dryrun
 ```
 
-<details><summary>Command breakdown</summary>
+??? example "Command breakdown"
 
-| Command line option | Description |
-| ------------------- | ----------- |
-| `snakemake`         | The call to the Snakemake program |
-| `-j 1`              | This tells the workflow to use 1 processing core |
-| `-s demo.smk`       | The path to the workflow script file |
-| `--configfile <config file name>` | The option to specify the path to your config file |
-| `--dryrun` | Tell Snakemake to perform a dryrun rather than execute the workflow |
-
-</details>
+    | Command line option | Description |
+    | ------------------- | ----------- |
+    | `snakemake`         | The call to the Snakemake program |
+    | `-j 1`              | This tells the workflow to use 1 processing core |
+    | `-s demo.smk`       | The path to the workflow script file |
+    | `--configfile <config file name>` | The option to specify the path to your config file |
+    | `--dryrun` | Tell Snakemake to perform a dryrun rather than execute the workflow |
 
 After running through every single task it will set out to do when asked to, Snakemake will print out a nice summary table that should look something like this:
 
@@ -249,7 +290,7 @@ That table is pretty nice, but for complex workflows it would be nice to visuali
 
 ## Rulegraphs and DAGs
 
-Snakemake can also display the outline of a workflow in graph format by printing out the **rulegraph**, which just displays how the rules are connected to each other, or the **DAG**, which stands for directed acyclic graph and shows how each individual task is connected. In the context of our demo, the rulegraph displays the rules while the DAG displays the rules *per sample*.
+Snakemake can also display the outline of a workflow in visual format by printing out the **rulegraph**, which just displays how the rules are connected to each other, or the **DAG**, which stands for **directed acyclic graph** and shows how each individual task is connected. In the context of our demo, the rulegraph displays the rules while the DAG displays the rules *per sample*.
 
 Let's generate both to see the difference.
 
@@ -259,17 +300,15 @@ Let's generate both to see the difference.
 snakemake -j 1 -s demo --configfile <config file name> --rulegraph
 ```
 
-<details><summary>Command breakdown</summary>
+??? example "Command breakdown"
 
-| Command line option | Description |
-| ------------------- | ----------- |
-| `snakemake`         | The call to the Snakemake program |
-| `-j 1`              | This tells the workflow to use 1 processing core |
-| `-s demo.smk`       | The path to the workflow script file |
-| `--configfile <config file name>` | The option to specify the path to your config file |
-| `--rulegraph` | This tells Snakemake to print out the rulegraph in text |
-
-</details>
+    | Command line option | Description |
+    | ------------------- | ----------- |
+    | `snakemake`         | The call to the Snakemake program |
+    | `-j 1`              | This tells the workflow to use 1 processing core |
+    | `-s demo.smk`       | The path to the workflow script file |
+    | `--configfile <config file name>` | The option to specify the path to your config file |
+    | `--rulegraph` | This tells Snakemake to print out the rulegraph in text |
 
 This essentially does a dryrun, but emits output in a different format. You should see something like this:
 
@@ -295,7 +334,7 @@ Well... that's actually less useful than the table from the dryrun. Fortunately,
 
 ??? question "dot: command not found"
 
-    `dot` should be installed on the Cannon cluster. You can always check by typing `dot -h`. If a help menu comes up, `dot` is installed. If any type of `dot: command not found` message appears, your system does not have `dot` installed. In that case, `dot` is part of the [Graphviz]() package and can be [installed with conda/mamba](https://anaconda.org/conda-forge/graphviz).
+    `dot` should be installed on the Cannon cluster. You can always check by typing `dot -h`. If a help menu comes up, `dot` is installed. If any type of `dot: command not found` message appears, your system does not have `dot` installed. In that case, `dot` is part of the [Graphviz :octicons-link-external-24:](https://graphviz.org/){ target="_blank" } package and can be [installed with conda/mamba :octicons-link-external-24:](https://anaconda.org/conda-forge/graphviz){ target="_blank" }.
 
 > **Exercise:** Generate an image of the rulegraph with `dot`:
 
@@ -303,26 +342,29 @@ Well... that's actually less useful than the table from the dryrun. Fortunately,
 snamekame -j 1 -s demo --configfile <config file name> --rulegraph | dot -Tpng > demo-rulegraph.png
 ```
 
-<details><summary>Command breakdown</summary>
+??? example "Command breakdown"
 
-| Command line option  | Description |
-| -------------------  | ----------- |
-| `snakemake`          | The call to the Snakemake program |
-| `-j 1`               | This tells the workflow to use 1 processing core |
-| `-s demo.smk`        | The path to the workflow script file |
-| `--configfile <config file name>` | The option to specify the path to your config file |
-| `--rulegraph`        | This tells Snakemake to print out the rulegraph in text |
-| `|`                  | The shell's piping operator, which tells the shell to use the output of one command (`snakemake` here) as the input of another command (`dot` here) |
-| `dot`                | The call to the `dot` program |
-| `-Tpng`              | This option tells `dot` to format its output as a png image |
-| `>`                  | The shell's redirect operator, which tells the shell to save the output of the command on the left (`dot`) as the file named on the right |
-| `demo-rulegraph.png` | The name of the file to save `dot`'s output |
+    | Command line option  | Description |
+    | -------------------  | ----------- |
+    | `snakemake`          | The call to the Snakemake program |
+    | `-j 1`               | This tells the workflow to use 1 processing core |
+    | `-s demo.smk`        | The path to the workflow script file |
+    | `--configfile <config file name>` | The option to specify the path to your config file |
+    | `--rulegraph`        | This tells Snakemake to print out the rulegraph in text |
+    | `|`                  | The shell's piping operator, which tells the shell to use the output of one command (`snakemake` here) as the input of another command (`dot` here) |
+    | `dot`                | The call to the `dot` program |
+    | `-Tpng`              | This option tells `dot` to format its output as a png image |
+    | `>`                  | The shell's redirect operator, which tells the shell to save the output of the command on the left (`dot`) as the file named on the right |
+    | `demo-rulegraph.png` | The name of the file to save `dot`'s output |
 
-</details>
 
 If there are no errors, there should now be a file called `demo-rulegraph.png` in your working directory. If you are able to view it somehow (either remotely or by transferring locally), it would look something like this:
 
+<!--
 ![The rulegraph for the demo workflow, showing two rules, "count_lines" and "count_words", converging on the rule "combine_counts", which leads into the rule "aggregate", and finally the target rule "all"](demo-rulegraph.png)
+-->
+
+<center><img src="../demo-rulegraph.png" alt="The rulegraph for the demo workflow, showing two rules, 'count_lines' and 'count_words', converging on the rule 'combine_counts', which leads into the rule 'aggregate', and finally the target rule 'all'"></center>
 
 Now this clearly shows what this workflow is doing, including the names of the rules that are run and the order in which they will be run. We see there is a branching structure to the workflow: since the rules `count_lines` and `count_words` both depend on the same input files but don't depend on each other they can be run simultaneously. The `combine_counts` rule, however, depends on output from both of those rules, so it must wait for them to complete. This leads into the `aggregate` rule and finally the target rule `all`, which is standard in most Snakemake workflows as the final rule -- it takes input but creates no output.
 
@@ -332,26 +374,28 @@ Now this clearly shows what this workflow is doing, including the names of the r
 snakemake -j 1 -s demo --configfile <config file name> --dag | dot -Tpng > demo-dag.png
 ```
 
-<details><summary>Command breakdown</summary>
+??? example "Command breakdown"
 
-| Command line option  | Description |
-| -------------------  | ----------- |
-| `snakemake`          | The call to the Snakemake program |
-| `-j 1`               | This tells the workflow to use 1 processing core |
-| `-s demo.smk`        | The path to the workflow script file |
-| `--configfile <config file name>` | The option to specify the path to your config file |
-| `--dag`              | This tells Snakemake to print out the DAG in text |
-| `|`                  | The shell's piping operator, which tells the shell to use the output of one command (`snakemake` here) as the input of another command (`dot` here) |
-| `dot`                | The call to the `dot` program |
-| `-Tpng`              | This option tells `dot` to format its output as a png image |
-| `>`                  | The shell's redirect operator, which tells the shell to save the output of the command on the left (`dot`) as the file named on the right |
-| `demo-dag.png` | The name of the file to save `dot`'s output |
-
-</details>
+    | Command line option  | Description |
+    | -------------------  | ----------- |
+    | `snakemake`          | The call to the Snakemake program |
+    | `-j 1`               | This tells the workflow to use 1 processing core |
+    | `-s demo.smk`        | The path to the workflow script file |
+    | `--configfile <config file name>` | The option to specify the path to your config file |
+    | `--dag`              | This tells Snakemake to print out the DAG in text |
+    | `|`                  | The shell's piping operator, which tells the shell to use the output of one command (`snakemake` here) as the input of another command (`dot` here) |
+    | `dot`                | The call to the `dot` program |
+    | `-Tpng`              | This option tells `dot` to format its output as a png image |
+    | `>`                  | The shell's redirect operator, which tells the shell to save the output of the command on the left (`dot`) as the file named on the right |
+    | `demo-dag.png` | The name of the file to save `dot`'s output |
 
 Here is what the DAG looks like:
 
+<!-->
 ![The DAG for the demo workflow given our two sample inputs. In this case, the rules "count_lines" and "count_words" each show up twice, once for each sample. The "combine_counts" rule also shows up once for each sample, while "aggregate" and "all" appear once.](demo-dag.png)
+-->
+
+<center><img src="../demo-dag.png" alt="The DAG for the demo workflow given our two sample inputs. In this case, the rules 'count_lines' and 'count_words' each show up twice, once for each sample. The 'combine_counts' rule also shows up once for each sample, while 'aggregate' and 'all' appear once."></center>
 
 Here, we see parts of the rulegraph duplicated. Specifically, the rules `count_lines` and `count_words` are run twice, once for each sample. `combine_counts` is also run twice on the output of the `count_lines` and `count_words` rules. The `aggregate` rule is run once, combining all counts from all samples, and the target rule `all` is present as the endpoint for the workflow.
 
@@ -364,6 +408,40 @@ Viewing that rulegraph and DAG of your workflow can be extremely helpful in unde
     Always run a dryrun and use a rulegraph before executing your workflow. This will help you know what to expect when you actually do execute the workflow
 
 ### Example workflows and their rulegraphs
+
+Documented workflows for common tasks may exist, and those that are well supported and maintained should always display their rulegraphs in their documentation or publications. Let's go through some examples and discuss what we think these workflows do:
+
+#### grenepipe
+
+[Pipeline :octicons-link-external-24:](https://github.com/moiexpositoalonsolab/grenepipe){ target="_blank" } | [Rulegraph :octicons-link-external-24:](https://github.com/moiexpositoalonsolab/grenepipe/wiki/Rule-Call-Graph){ target="_blank" }
+
+??? tip "Show rulegraph"
+
+    <center><img src="../../img/grenepipe-rulegraph.png" alt="Rulegraph for grenepipe pipeline"></center>
+
+#### Cactus related pipeline #1
+
+[Pipeline :octicons-link-external-24:](https://github.com/harvardinformatics/cactus-snakemake/){ target="_blank" } | [Rulegraph :material-arrow-top-right:](https://informatics.fas.harvard.edu/resources/tutorials/replace-genome-whole-genome-alignment-cactus/){ target="_blank" }
+
+??? tip "Show rulegraph"
+
+    <center><img src="../../img/cactus-replace-rulegraph.png" alt="Rulegraph for a Cactus related pipeline"></center>
+
+#### snpArcher
+
+[Pipeline :octicons-link-external-24:](https://snparcher.readthedocs.io/en/latest/){ target="_blank" } | [Rulegraph :octicons-link-external-24:](https://doi.org/10.1093/molbev/msad270){ target="_blank" }
+
+??? tip "Show rulegraph"
+
+    <center><img src="../../img/snparcher-rulegraph.jpeg" alt="Rulegraph for the snpArcher pipeline"></center>
+
+#### Cactus related pipeline #2
+
+[Pipeline :octicons-link-external-24:](https://github.com/harvardinformatics/cactus-snakemake/){ target="_blank" } | [Rulegraph :material-arrow-top-right:](https://informatics.fas.harvard.edu/resources/tutorials/whole-genome-alignment-cactus/){ target="_blank" }
+
+??? tip "Show rulegraph"
+
+    <center><img src="../../img/cactus-rulegraph.png" alt="Rulegraph for a Cactus related pipeline"></center>
 
 <!-- good time for the 10/15 minute break -->
 
@@ -397,7 +475,7 @@ KeyError in file "/n/holylfs05/LABS/informatics/Lab/training/snakemake-workshop/
 
 > **Exercise:** Open the `debugging-demos/debug-01-config.yml` config file in your favorite text editor* and debug the problem. Then re-run the dryrun.
 >
-> * If you don't have a favorite text editor, just use `nano`. Type `nano debugging-demos/01-config.yml` to open the file for editing. Type freely with the keyboard. There is no mouse functionality so use the arrow keys to navigate. Use `ctrl-o` followed by `<enter>` to save the file. Use `ctrl-x` to exit. If you make changes and use `ctrl-x` to exit without saving, you will be prompted to save the file.
+> \* If you don't have a favorite text editor, just use `nano`. Type `nano debugging-demos/01-config.yml` to open the file for editing. Type freely with the keyboard. There is no mouse functionality so use the arrow keys to navigate. Use `ctrl-o` followed by `<enter>` to save the file. Use `ctrl-x` to exit. If you make changes and use `ctrl-x` to exit without saving, you will be prompted to save the file.
 
 #### `FileNotFoundError`
 
@@ -437,7 +515,7 @@ The Snakemake log files contain a lot of information, including summaries of eve
 
 #### Command log files
 
-In a Snakemake workfile, if a rule uses a `shell:` directive to run a command, that command may also leave its own log file. In fact, well designed workflows should have log files for every task! These log files are often where the informative error message lies.
+In a Snakemake workflow, if a rule uses a `shell:` directive to run a command, that command may also leave its own log file. In fact, well designed workflows should have log files for every task! These log files are often where the informative error message lies.
 
 > **Exercise:** Run the following to produce an error. Check the Snakemake log to try and figure out what went wrong.
 
@@ -453,15 +531,15 @@ There are lot's of things that could go wrong during the execution of a workflow
 
 ## Running on a Cluster
 
-Snakemake inherently solves some of the problems of complex data analysis workflows that we mentioned at the beginning of the workshop. Specifically, they make analyses reproducible and are relatively low maintenance once they are designed. However, we haven't yet tackled the parallelization problem
+Snakemake inherently solves some of the problems of complex data analysis workflows that we mentioned at the beginning of the workshop. Specifically, they make analyses reproducible and are relatively low maintenance once they are written. However, we haven't yet tackled the parallelization problem
 
-Well, it turns out Snakemake inherently deals with this as well, being able to run jobs in the rulegraph that don't depend on each other simultaneously. This can easily be controlled with the `-j` argument, which we've only supplied with the value `1` until now. If this is increased to, say, `4`, then the workflow will, whenever possible, run up two 4 jobs simultaneously.
+Well, it turns out Snakemake inherently deals with this as well, because it is able to run jobs in the rulegraph that don't depend on each other simultaneously. This can easily be controlled with the `-j` argument, which we've only supplied with the value `1` until now. If this is increased to, say, `4`, then the workflow will, whenever possible, run up two 4 jobs simultaneously.
 
 This alone, however, isn't that helpful for large workflows since it is limited by the resources on the computer where Snakemake is run. Where Snakemake and other workflow managers really take off is when they are integrated with a job scheduling system (like SLURM) on a high-performance computing (HPC) cluster.
 
 ### Executor plugins
 
-Snakemake integrates with job schedulers by using a set of **plugins**. These plugins are just additional software packages. See the list of plugins in the [Snakemake plugin catalogue](https://snakemake.github.io/snakemake-plugin-catalog/index.html). Here, you'll notice a series of **executor** plugins, which are used specifically to run jobs on specific job schedulers.
+Snakemake integrates with job schedulers by using a set of **plugins**. These plugins are just additional software packages. See the list of plugins in the [Snakemake plugin catalogue :octicons-link-external-24:](https://snakemake.github.io/snakemake-plugin-catalog/index.html){:target="_blank"}. Here, you'll notice a series of **executor** plugins, which are used specifically to run jobs on specific job schedulers.
 
 > **Exercise:** Find the **slurm executor** plugin on the plugin catalogue page and read the documentation to find out how to install it, then install it in your environment. Run the following to make sure it is installed:
 

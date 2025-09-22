@@ -18,6 +18,7 @@ While we do not require attendees to have previous experience writing Snakemake 
 
 - Basic knowledge of navigating a file system from the command line
 - Previous experience with command line software and ability to read basic bash scripts
+- Experience editing text files
 - Basic understanding software environments (*e.g.* conda) and containers (*e.g.* singularity)
 
 !!! warning "Cluster account required"
@@ -30,7 +31,7 @@ This workshop will use files hosted on a [github repository :octicons-link-exter
 
 ### Downloading the workshop
 
-First, login to the cluster and navigate to the location in which you want to download the repo. Since this is a temporary workshop, feel free to use the SCRATCH space (`/netscratch/YOUR_LAB/Lab/USERNAME`). 
+First, login to the cluster and navigate to the location in which you want to download the repo. 
 
 #### 1. If you are familiar with *git*:
 
@@ -53,7 +54,7 @@ cd snakemake-workshop-main
 
 ### Installing Snakemake
 
-Snakemake is the workflow management software we'll be using during the workshop. We recommend installing it through the conda/mamba software managers (For more info about conda and mamba, see [our tutorial](../../resources/tutorials/installing-command-line-software-conda-mamba.md)).
+Snakemake is the workflow management software we'll be using during the workshop. We recommend installing it through the conda/mamba software managers (For more info about conda and mamba, see [our tutorial :material-arrow-top-right:](../../resources/tutorials/installing-command-line-software-conda-mamba.md){ target="_blank" }).
 
 With `conda`, you should be able to setup an environment for Snakemake with:
 
@@ -75,32 +76,34 @@ Error: No Snakefile found, tried Snakefile, snakefile, workflow/Snakefile, workf
 
 This means snakemake is installed and ready to run! If you see any variation of the error message `command not found`, then something has gone wrong with your installation. Make sure your envrionment is activated (you should see `(snakemake-env)` at the front of your prompt), and if it still doesn't work let us know!
 
-#### snakemake vs. snakemake-minimal
+!!! note "snakemake vs. snakemake-minimal"
 
-If you search for the snakemake package on conda-forge, you'll see several come up, with the two most popular being `snakemake` and `snakemake-minimal`. These will both install snakemake into your environment, however `snakemake` includes many extra dependencies, including those for remote execution and storage. Since our most likely use case is running on the cluster, we won't need those dependencies so we can stick with `snakemake-minimal`. But if you do ever need to store data or run workflows on places like AWS or Google, remember to use `snakemake`.
+    If you search for the snakemake package on conda-forge, you'll see several come up, with the two most popular being `snakemake` and `snakemake-minimal`. These will both install snakemake into your environment, however `snakemake` includes many extra dependencies, including those for remote execution and storage. Since our most likely use case is running on the cluster, we won't need those dependencies so we can stick with `snakemake-minimal`. But if you do ever need to store data or run workflows on places like AWS or Google, remember to use `snakemake`.
 
 ### Working with text files on the cluster
 
-During this workshop we will be editing text files on the cluster, which means you must either be comfortable using a text editor on the command line, or you must be able to connect to the cluster with a remote desktop client such as [VSCode](https://code.visualstudio.com/), or edit the files on an OpenOnDemand instance.
+During this workshop we will be writing scripts and editing text files on the cluster, which means you must either be comfortable using a text editor on the command line, or you must be able to connect to the cluster with a remote desktop client such as [VSCode :octicons-link-external-24:](https://code.visualstudio.com/){ target="_blank" }, or edit the files on an OpenOnDemand instance.
 
-If you want to use a text editor on the command line, we recommend using `nano`, which is a great beginner text editor. You open a file using the command `nano <filename>`. This will change your terminal to a text editor interface. You will need to use your arrow keys to navigate the text (not your mouse/clicking). You can type normally to add/change text. When you're done editing, you can save the file by pressing `Ctrl + O`, then `Enter`. To exit, press `Ctrl + X`, then `Enter`.
+If you want to use a text editor on the command line, we recommend using `nano`, which is a great beginner text editor. You open a file using the command `nano <filename>`. This will change your terminal to a text editor interface. You will need to use your arrow keys to navigate the text (not your mouse/clicking). You can type normally to add/change text. When you're done editing, you can save the file by pressing `Ctrl + O`, then `Enter`. To exit, press `Ctrl + X`, then `Enter`. Look at the bottom of the interface for other options and messages.
 
-If you want to use a the text editor VSCode to edit files on the cluster, you can follow the instructions on the [FASRC Docs page](https://docs.rc.fas.harvard.edu/kb/vscode-remote-development-via-ssh-or-tunnel/) on how to set that up. You can either run VSCode in your browser, or you can install it locally and connect to the cluster. Give this a try, but if it doesn't work, just use `nano` for now and we can try to troubleshoot it later.
+If you want to use a the text editor VSCode to edit files on the cluster, you can follow the instructions on [this FASRC Docs page :octicons-link-external-24:](https://docs.rc.fas.harvard.edu/kb/vscode-remote-development-via-ssh-or-tunnel/){ target="_blank" } on how to set that up. You can either run VSCode in your browser, or you can install it locally and connect to the cluster. Give this a try, but if it doesn't work, just use `nano` for now and we can try to troubleshoot it later.
 
-You can also open the files by using remote desktop or RStudio server. To start an OpenOnDemand session, you follow the directions on this [FASRC Docs page](https://docs.rc.fas.harvard.edu/kb/virtual-desktop/). Briefly, the steps are:
+You can also open the files by using remote desktop or RStudio server. To start an OpenOnDemand (remote desktop) session, follow the directions on [this FASRC Docs page :octicons-link-external-24:](https://docs.rc.fas.harvard.edu/kb/virtual-desktop/){ target="_blank" }. Briefly, the steps are:
 
 1. Connect to VPN using your FASRC credentials
-2. Go to [https://rcood.rc.fas.harvard.edu](https://rcood.rc.fas.harvard.edu)
+2. Go to [https://rcood.rc.fas.harvard.edu :octicons-link-external-24:](https://rcood.rc.fas.harvard.edu){ target="_blank" }
 3. Start a jupyterlab session with 4 GB memory, 1 CPU, and 4 hours 
 4. Navigate to the directory where you want to put your repo
 5. Use the terminal to install the snakemake conda environment & download the workshop repo as described above
 
 ## Workshop content
 
+Click the buttons below to access the workshop content.
+
 Part 1: Running a Snakemake workflow
 
-[Snakemake Run](run/run.md){ .md-button }
+[Snakemake Run](run/run.md){ .md-button .md-button--primary }
 
 Part 2: Developing a Snakemake workflow
 
-[Snakemake Develop](run/run.md){ .md-button }
+[Snakemake Develop](run/run.md){ .md-button .md-button--primary }
