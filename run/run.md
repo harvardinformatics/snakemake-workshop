@@ -1,8 +1,20 @@
+
+
 ## Introduction
 
 Welcome to today's workshop about the Snakemake workflow management software. This is day 1 of 2, where we'll be focusing on how to get pre-made workflows up and running. We'll touch on the basics of Snakemake's syntax and terminology, and learn how to debug some common problems. We'll also learn how to use Snakemake in conjunction with SLURM to really scale up your analyses.
 
 If you haven't already, please follow the [Getting Started](/index.md) section to download the workshop materials and install Snakemake, as well as choose a text editor to work with on the cluster.
+
+### Terminology
+
+Before we get started teaching any workshop, I like to point out that, like any specific domain, the way we talk about programming is almost its own language. Words in this context may have different meaning than in other contexts. As programmers ourselves, we are so used to using words in the context of programming that we sometimes forget others aren't used to it.
+
+This is all to say, if you hear us saying a word that you're familiar with but it's obvious that we're using it in a different way, or if you hear an unfamiliar term, please ask us to explain it. This knowledge gap is one of the most difficult parts about teaching a specific topic mostly because the teachers aren't usually aware of it.
+
+We've put together a table of terms relating to Snakemake and workflows and their definitions in this context: [Workflow terminology](https://informatics.fas.harvard.edu/resources/glossary/#workflow-management).
+
+There are also other tables to browse on the glossarg. Please let us know if there is anything you think we should add to this table.
 
 ## Workflows
 
@@ -617,6 +629,71 @@ snakemake --workflow-profile demo-profile/ --dryrun
 
 Think of the workflow profile as the config for Snakemake itself, specifying program arguments and resources, while the workflow config file is the config file for a particular set of inputs to run through the profile.
 
+## Snakemake outline
+
+<div>
+    <input type="checkbox" id="popup" style="display:none;">
+    <div class="backdrop" onclick="popup.checked=false;">
+      <label for="popup">
+        <img src="../../img/snakemake-outline.png" class="fullimg">
+      </label>
+    </div>
+    <div class="caption">Click to view</div>
+    <label for="popup">
+      <center><img src="../../img/snakemake-outline.png" style="cursor:pointer;"></center>
+    </label>
+</div>
+
 ## End Part 1
 
 Let us know if you have any questions and be sure to attend part 2, Develop, where we'll learn how to actually write a Snakemake pipeline!
+
+<!-- --------------------------------- -->
+<!-- Page specfic CSS -->
+
+<style>
+    /* ----- */
+    /* Pop-up image viewer */    
+    .backdrop {
+        display: none;
+        position: fixed; top:0; left:0; width:100vw; height:100vh;
+        background: rgba(0,0,0,0.5);
+        z-index: 10;
+        text-align: center;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+    }
+    #popup:not(:checked) ~ .backdrop {
+        display: none;
+    }
+    #popup:checked ~ .backdrop {
+        display: flex;
+    }
+    .fullimg {
+        max-width: 100vw;
+        max-height: 100vh;
+        margin: 0;
+        display: block;
+        background-color: #fff;
+    }
+    .caption {
+        color: #aaa;
+        font-style: italic;
+        font-size: 1.1em;
+        margin-bottom: 8px;
+        text-align: center;
+        letter-spacing: 0.02em;
+    }    
+
+    /* ----- */
+    /* Hide all 2nd-level navs */
+    .md-nav--secondary .md-nav__item .md-nav {
+        display: none !important;
+    }
+
+    /* Show when parent has .expanded class, which is added by js/collapse_toc.js */
+    .md-nav--secondary .md-nav__item.expanded > .md-nav {
+        display: block !important;
+    }    
+</style>
