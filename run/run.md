@@ -562,9 +562,9 @@ In order for Snakemake and SLURM to know how to submit these jobs, we have to gi
 - Partition/queue
 - Runtime
 
-Depending one what cluster you are using, you may also need to specify other resources, such as `account`. 
+Depending on what cluster you are using, you may also need to specify other resources, such as `account`. 
 
-While **partition** and **CPUs** are somewhat deterministic, **memory** and **runtime** usually require use to give best estimates. This can be a tricky task, and there aren't hard and fast rules for determining this even outside the context of Snakemake.
+While **partition** and **CPUs** are somewhat deterministic, **memory** and **runtime** usually require us to give best estimates. This can be a tricky task, and there aren't hard and fast rules for determining this even outside the context of Snakemake.
 
 In the context of Snakemake, resources need to be specified keeping in mind that each rule may run multiple jobs on different inputs, so you'll have to request what you think is the most memory and runtime a given rule would need for the highest resource demanding input.
 
@@ -611,8 +611,12 @@ Profiles can actually be used to specify any of the command line arguments for S
 snakemake --workflow-profile demo-profile/ --dryrun
 ```
 
-<!-- mention that if the workflow script is called snakefile it doesn't even need to be specified in the command line -->
+!!! tip "Snakefiles named 'snakefile'"
+
+    If you name your snakemake script (typically called a **snakefile**) `snakefile` and you run snakemake from within the directory where it is saved, then you don't have to specify it at all! Snakemake by default will look for a file called `snakefile` to run.
 
 Think of the workflow profile as the config for Snakemake itself, specifying program arguments and resources, while the workflow config file is the config file for a particular set of inputs to run through the profile.
 
-<!-- expand on this -->
+## End Part 1
+
+Let us know if you have any questions and be sure to attend part 2, Develop, where we'll learn how to actually write a Snakemake pipeline!
