@@ -71,6 +71,20 @@ cd snakemake-workshop-main
 
 Snakemake is the workflow management software we'll be using during the workshop. We recommend installing it through the conda/mamba software managers (For more info about conda and mamba, see [our tutorial :material-arrow-top-right:](../../resources/tutorials/installing-command-line-software-conda-mamba.md){ target="_blank" }).
 
+First, make sure the Python and conda modules are loaded into your environment:
+
+```bash
+module load python
+```
+
+??? example "Code breakdown"
+
+    | Code     | Description |
+    | -------- | ----------- |
+    | `module` | Run the cluster's module tool for pre-installed software. |
+    | `load`   | The sub-command to run to load a given module. | 
+    | `python` | The name of the module to load. |     
+
 With `conda`, you should be able to setup an environment for Snakemake with:
 
 ```bash
