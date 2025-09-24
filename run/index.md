@@ -1,10 +1,18 @@
+---
+title: "[Workshop] Running Snakemake Workflows"
+authors:
+    - Gregg Thomas
+    - Lei Ma
+author_header: Workshop Developers
+---
 
+# Snakemake Workshop, part 1: Running Workflows
 
 ## Introduction
 
 Welcome to today's workshop about the Snakemake workflow management software. This is day 1 of 2, where we'll be focusing on how to get pre-made workflows up and running. We'll touch on the basics of Snakemake's syntax and terminology, and learn how to debug some common problems. We'll also learn how to use Snakemake in conjunction with SLURM to really scale up your analyses.
 
-If you haven't already, please follow the [Getting Started](/index.md) section to download the workshop materials and install Snakemake, as well as choose a text editor to work with on the cluster.
+If you haven't already, please follow the [Getting Started](../index.md) section to download the workshop materials and install Snakemake, as well as choose a text editor to work with on the cluster.
 
 ### Terminology
 
@@ -12,9 +20,9 @@ Before we get started teaching any workshop, I like to point out that, like any 
 
 This is all to say, if you hear us saying a word that you're familiar with but it's obvious that we're using it in a different way, or if you hear an unfamiliar term, please ask us to explain it. This knowledge gap is one of the most difficult parts about teaching a specific topic mostly because the teachers aren't usually aware of it.
 
-We've put together a table of terms relating to Snakemake and workflows and their definitions in this context: [Workflow terminology](https://informatics.fas.harvard.edu/resources/glossary/#workflow-management).
+We've put together a table of terms relating to Snakemake and workflows and their definitions in this context: [Workflow terminology](../../../resources/glossary/#workflow-management).
 
-There are also other tables to browse on the glossarg. Please let us know if there is anything you think we should add to this table.
+There are also other tables to browse on the glossary. Please let us know if there is anything you think we should add to this table.
 
 ## Workflows
 
@@ -376,7 +384,7 @@ If there are no errors, there should now be a file called `demo-rulegraph.png` i
 ![The rulegraph for the demo workflow, showing two rules, "count_lines" and "count_words", converging on the rule "combine_counts", which leads into the rule "aggregate", and finally the target rule "all"](demo-rulegraph.png)
 -->
 
-<center><img src="../demo-rulegraph.png" alt="The rulegraph for the demo workflow, showing two rules, 'count_lines' and 'count_words', converging on the rule 'combine_counts', which leads into the rule 'aggregate', and finally the target rule 'all'"></center>
+<center><img src="demo-rulegraph.png" alt="The rulegraph for the demo workflow, showing two rules, 'count_lines' and 'count_words', converging on the rule 'combine_counts', which leads into the rule 'aggregate', and finally the target rule 'all'"></center>
 
 Now this clearly shows what this workflow is doing, including the names of the rules that are run and the order in which they will be run. We see there is a branching structure to the workflow: since the rules `count_lines` and `count_words` both depend on the same input files but don't depend on each other they can be run simultaneously. The `combine_counts` rule, however, depends on output from both of those rules, so it must wait for them to complete. This leads into the `aggregate` rule and finally the target rule `all`, which is standard in most Snakemake workflows as the final rule -- it takes input but creates no output.
 
@@ -407,7 +415,7 @@ Here is what the DAG looks like:
 ![The DAG for the demo workflow given our two sample inputs. In this case, the rules "count_lines" and "count_words" each show up twice, once for each sample. The "combine_counts" rule also shows up once for each sample, while "aggregate" and "all" appear once.](demo-dag.png)
 -->
 
-<center><img src="../demo-dag.png" alt="The DAG for the demo workflow given our two sample inputs. In this case, the rules 'count_lines' and 'count_words' each show up twice, once for each sample. The 'combine_counts' rule also shows up once for each sample, while 'aggregate' and 'all' appear once."></center>
+<center><img src="demo-dag.png" alt="The DAG for the demo workflow given our two sample inputs. In this case, the rules 'count_lines' and 'count_words' each show up twice, once for each sample. The 'combine_counts' rule also shows up once for each sample, while 'aggregate' and 'all' appear once."></center>
 
 Here, we see parts of the rulegraph duplicated. Specifically, the rules `count_lines` and `count_words` are run twice, once for each sample. `combine_counts` is also run twice on the output of the `count_lines` and `count_words` rules. The `aggregate` rule is run once, combining all counts from all samples, and the target rule `all` is present as the endpoint for the workflow.
 
@@ -429,7 +437,7 @@ Documented workflows for common tasks may exist, and those that are well support
 
 ??? tip "Show rulegraph"
 
-    <center><img src="../../img/grenepipe-rulegraph.png" alt="Rulegraph for grenepipe pipeline"></center>
+    <center><img src="../img/grenepipe-rulegraph.png" alt="Rulegraph for grenepipe pipeline"></center>
 
 #### Cactus related pipeline #1
 
@@ -437,7 +445,7 @@ Documented workflows for common tasks may exist, and those that are well support
 
 ??? tip "Show rulegraph"
 
-    <center><img src="../../img/cactus-replace-rulegraph.png" alt="Rulegraph for a Cactus related pipeline"></center>
+    <center><img src="../img/cactus-replace-rulegraph.png" alt="Rulegraph for a Cactus related pipeline"></center>
 
 #### snpArcher
 
@@ -445,7 +453,7 @@ Documented workflows for common tasks may exist, and those that are well support
 
 ??? tip "Show rulegraph"
 
-    <center><img src="../../img/snparcher-rulegraph.jpeg" alt="Rulegraph for the snpArcher pipeline"></center>
+    <center><img src="../img/snparcher-rulegraph.jpeg" alt="Rulegraph for the snpArcher pipeline"></center>
 
 #### Cactus related pipeline #2
 
@@ -453,7 +461,7 @@ Documented workflows for common tasks may exist, and those that are well support
 
 ??? tip "Show rulegraph"
 
-    <center><img src="../../img/cactus-rulegraph.png" alt="Rulegraph for a Cactus related pipeline"></center>
+    <center><img src="../img/cactus-rulegraph.png" alt="Rulegraph for a Cactus related pipeline"></center>
 
 <!-- good time for the 10/15 minute break -->
 
@@ -635,12 +643,12 @@ Think of the workflow profile as the config for Snakemake itself, specifying pro
     <input type="checkbox" id="popup" style="display:none;">
     <div class="backdrop" onclick="popup.checked=false;">
       <label for="popup">
-        <img src="../../img/snakemake-outline.png" class="fullimg">
+        <img src="../img/snakemake-outline.png" class="fullimg">
       </label>
     </div>
     <div class="caption">Click to view</div>
     <label for="popup">
-      <center><img src="../../img/snakemake-outline.png" style="cursor:pointer;"></center>
+      <center><img src="../img/snakemake-outline.png" style="cursor:pointer;"></center>
     </label>
 </div>
 

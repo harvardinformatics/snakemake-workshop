@@ -92,13 +92,15 @@ You can also open the files by using remote desktop or RStudio server. To start 
 
 1. Connect to VPN using your FASRC credentials
 2. Go to [https://rcood.rc.fas.harvard.edu :octicons-link-external-24:](https://rcood.rc.fas.harvard.edu){ target="_blank" }
-3. Start a jupyterlab session with 4 GB memory, 1 CPU, and 4 hours 
+3. Start a jupyterlab or R session with 4 GB memory, 1 CPU, and 4 hours 
 4. Navigate to the directory where you want to put your repo
 5. Use the terminal to install the snakemake conda environment & download the workshop repo as described above
 
 ## Workshop content
 
-Click the buttons below to access the workshop content.
+Links to content will appear as the date of each session approaches!
+
+<!-- Click the buttons below to access the workshop content.
 
 Part 1: Running a Snakemake workflow
 
@@ -106,4 +108,8 @@ Part 1: Running a Snakemake workflow
 
 Part 2: Developing a Snakemake workflow
 
-[Snakemake Develop](run/run.md){ .md-button .md-button--primary }
+:construction_site: Under construction, check back soon! :construction: -->
+
+<!-- [Snakemake Develop](run/run.md){ .md-button .md-button--primary } -->
+
+---
