@@ -94,6 +94,8 @@ With `-y` all prompts should be confirmed automatically. Then when the environme
 conda activate snakemake-env
 ```
 
+??? example "Code breakdown"
+
     | Code            | Description |
     | --------------- | ----------- |
     | `conda`         | Run the conda package and environment manager command line tool. |
