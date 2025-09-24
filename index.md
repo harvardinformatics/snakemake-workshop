@@ -86,7 +86,7 @@ conda create -n snakemake-env -c bioconda snakemake-minimal -y
     | `-n snakemake-env`  | Specifies the name of the new environment |
     | `-c bioconda`       | Specifies the conda channel from which to install packages into the environment while it is created. |
     | `snakemake-minimal` | The name of the packages to install while the environment is created. |
-    | | `-y`              | Automatically say 'yes' to any prompts during environment creation. 
+    | `-y`                | Automatically say 'yes' to any prompts during environment creation. |
 
 With `-y` all prompts should be confirmed automatically. Then when the environment is created, activate it:
 
