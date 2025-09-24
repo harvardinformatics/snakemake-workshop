@@ -1,4 +1,12 @@
-# Snakemake Workshop: Develop 
+---
+title: "[Workshop] Writing Snakemake Workflows"
+authors:
+    - Gregg Thomas
+    - Lei Ma
+author_header: Workshop Developers
+---
+
+# Snakemake Workshop, part 2: Writing workflows 
 
 ## Introduction
 

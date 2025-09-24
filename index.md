@@ -42,6 +42,13 @@ git clone https://github.com/harvardinformatics/snakemake-workshop.git
 cd snakemake-workshop
 ```
 
+??? example "Code breakdown"
+
+    | Code                                                                     | Description |
+    | ------------------------------------------------------------------------ | ----------- |
+    | `git clone https://github.com/harvardinformatics/snakemake-workshop.git` | This uses `git` to make a copy (clone) of our workshop directory, specified by the URL. |
+    | `cd snakemake-workshop`                                                  | This changes your working directory to the newly cloned directory. |
+
 #### 2. If you'd rather not use *git*:
 
 You can also just download the repository archive directly and extract it:
@@ -52,6 +59,14 @@ unzip main.zip
 cd snakemake-workshop-main
 ```
 
+??? example "Code breakdown"
+
+    | Code                                                                                        | Description |
+    | ------------------------------------------------------------------------------------------- | ----------- |
+    | `wget https://github.com/harvardinformatics/snakemake-workshop/archive/refs/heads/main.zip` | This uses the `wget` tool to download a compressed copy of our workshop repo, specified by the URL. |
+    | `unzip main.zip`                                                                            | This decompresses the workshop directory.
+    | `cd snakemake-workshop-main`                                                                | This changes your working directory to the newly downloaded workshop directory. |
+
 ### Installing Snakemake
 
 Snakemake is the workflow management software we'll be using during the workshop. We recommend installing it through the conda/mamba software managers (For more info about conda and mamba, see [our tutorial :material-arrow-top-right:](../../resources/tutorials/installing-command-line-software-conda-mamba.md){ target="_blank" }).
@@ -59,14 +74,31 @@ Snakemake is the workflow management software we'll be using during the workshop
 With `conda`, you should be able to setup an environment for Snakemake with:
 
 ```bash
-conda create -n snakemake-env -c conda-forge snakemake-minimal -y 
+conda create -n snakemake-env -c bioconda snakemake-minimal -y 
 ```
 
-Confirm the prompts on the screen. Then when the environment is created, activate it:
+??? example "Code breakdown"
+
+    | Code                | Description |
+    | ------------------- | ----------- |
+    | `conda`             | Run the conda package and environment manager command line tool. |
+    | `create`            | The sub-command to run from conda to create a new software environment. | 
+    | `-n snakemake-env`  | Specifies the name of the new environment |
+    | `-c bioconda`       | Specifies the conda channel from which to install packages into the environment while it is created. |
+    | `snakemake-minimal` | The name of the packages to install while the environment is created. |
+    | | `-y`              | Automatically say 'yes' to any prompts during environment creation. 
+
+With `-y` all prompts should be confirmed automatically. Then when the environment is created, activate it:
 
 ```bash
 conda activate snakemake-env
 ```
+
+    | Code            | Description |
+    | --------------- | ----------- |
+    | `conda`         | Run the conda package and environment manager command line tool. |
+    | `create`        | The sub-command to run to activate a previously created conda environment. | 
+    | `snakemake-env` | The name of the environment to activate |
 
 You should be able to type `snakemake` and see the message:
 
