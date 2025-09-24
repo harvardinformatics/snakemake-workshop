@@ -1,3 +1,8 @@
+executor: slurm
+jobs: 5
+snakefile: demo.smk
+configfile: complete/demo-config.yml
+
 default-resources:
   slurm_partition: test
   mem_mb: 2048

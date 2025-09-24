@@ -481,6 +481,16 @@ Run the following command to see an example of a `KeyError` using our demo workf
 snakemake -j 1 -s demo.smk --configfile debugging-demos/01-config.yml --dryrun
 ```
 
+??? example "Command breakdown"
+
+    | Command line option                          | Description |
+    | -------------------------------------------  | ----------- |
+    | `snakemake`                                  | The call to the Snakemake program |
+    | `-j 1`                                       | This tells the workflow to use 1 processing core |
+    | `-s demo.smk`                                | The path to the workflow script file |
+    | `--configfile debugging-demos/01-config.yml` | The option to specify the path to your config file |
+    | `--dryrun`                                   | Tell Snakemake to perform a dryrun rather than execute the workflow |
+
 You should something like:
 
 ```
@@ -503,6 +513,16 @@ This is a pretty generic error that could happen for a lot of reasons. Fortunate
 snakemake -j 1 -s demo.smk --configfile complete/demo-config1.yml --dryrun
 ```
 
+??? example "Command breakdown"
+
+    | Command line option                      | Description |
+    | ---------------------------------------  | ----------- |
+    | `snakemake`                              | The call to the Snakemake program |
+    | `-j 1`                                   | This tells the workflow to use 1 processing core |
+    | `-s demo.smk`                            | The path to the workflow script file |
+    | `--configfile complete/demo-config1.yml` | The option to specify the path to your config file |
+    | `--dryrun`                               | Tell Snakemake to perform a dryrun rather than execute the workflow |
+
 #### `MissingInputException`
 
 <!-- demo files 02 -->
@@ -512,6 +532,16 @@ These can be a bit trickier. Since these errors only happen during Snakemake's a
 ```bash
 snakemake -j 1 -s demo.smk --configfile debugging-demos/02-config.yml --dryrun
 ```
+
+??? example "Command breakdown"
+
+    | Command line option                          | Description |
+    | -------------------------------------------  | ----------- |
+    | `snakemake`                                  | The call to the Snakemake program |
+    | `-j 1`                                       | This tells the workflow to use 1 processing core |
+    | `-s demo.smk`                                | The path to the workflow script file |
+    | `--configfile debugging-demos/02-config.yml` | The option to specify the path to your config file |
+    | `--dryrun`                                   | Tell Snakemake to perform a dryrun rather than execute the workflow |
 
 > **Exercise:** Track down the problem with the above command and fix it so the dry run completes successfully.
 
@@ -543,6 +573,16 @@ snakemake -j 1 -s debugging-demos/03-demo.smk --configfile debugging-demos/03-de
 snakemake -j 1 -s debugging-demos/03-demo.smk --configfile debugging-demos/03-demo-config.yml
 ```
 
+??? example "Command breakdown"
+
+    | Command line option                               | Description |
+    | ------------------------------------------------  | ----------- |
+    | `snakemake`                                       | The call to the Snakemake program |
+    | `-j 1`                                            | This tells the workflow to use 1 processing core |
+    | `-s debugging-demos/03-demo.smk`                  | The path to the workflow script file |
+    | `--configfile debugging-demos/03-demo-config.yml` | The option to specify the path to your config file |
+    | `--dryrun`                                        | Tell Snakemake to perform a dryrun rather than execute the workflow |
+
 There are lot's of things that could go wrong during the execution of a workflow, so we're not going to go through other examples. But hopefully now you at least know how to get started in tracking down any problems you encounter.
 
 ## Running on a Cluster
@@ -562,6 +602,17 @@ Snakemake integrates with job schedulers by using a set of **plugins**. These pl
 ```bash
 snakemake -e slurm -j 1 -s demo.smk --configfile complete/demo-config.yml --dryrun
 ```
+
+??? example "Command breakdown"
+
+    | Command line option                     | Description |
+    | --------------------------------------  | ----------- |
+    | `snakemake`                             | The call to the Snakemake program |
+    | `-e slurm`                              | The snakemake executor plugin option to submit jobs to a corresponding job schedule, in this case slurm |
+    | `-j 1`                                  | This tells the workflow to submit 1 job to the executor at a time |
+    | `-s demo.smk`                           | The path to the workflow script file |
+    | `--configfile complete/demo-config.yml` | The option to specify the path to your config file |
+    | `--dryrun`                              | Tell Snakemake to perform a dryrun rather than execute the workflow |
 
 If you get an error, then there was likely a problem with the plugin installation and you should ask us about it. Otherwise, the dryrun should complete normally.
 
@@ -610,10 +661,19 @@ set-resources:
 Here, we have specified default resources to submit for all jobs. But for jobs submitted from the `count_lines` rule we've provided a different set of resources. If you'd like to see this in action, use the following command:
 
 ```bash
-snakemake -j 5 -e slurm -s demo.smk --configfile complete/demo-config.yml --workflow-profile demo-profile/
+snakemake -e slurm -j 5 -s demo.smk --configfile complete/demo-config.yml --workflow-profile demo-profile/
 ```
 
-<!-- at some point we need to mention that old results need to be deleted or a new output dir specified -->
+??? example "Command breakdown"
+
+    | Command line option                     | Description |
+    | --------------------------------------  | ----------- |
+    | `snakemake`                             | The call to the Snakemake program |
+    | `-e slurm`                              | The snakemake executor plugin option to submit jobs to a corresponding job schedule, in this case slurm |
+    | `-j 5`                                  | This tells the workflow to submit 5 jobs to the executor at once |
+    | `-s demo.smk`                           | The path to the workflow script file |
+    | `--configfile complete/demo-config.yml` | The option to specify the path to your config file |
+    | `--workflow-profile demo-profile/`      | The option to specify the path to the workflow profile directory containing a `config.yaml` file with resources allocations and command line options  |
 
 Note here the `--workflow-profile` option gives the **path to the directory containing the config.yaml file** where your resources are specified. We've also included `-e slurm` and increased `-j` to `5`, meaning that at most 5 jobs will be submitted to the cluster simultaneously.
 
@@ -626,6 +686,14 @@ Profiles can actually be used to specify any of the command line arguments for S
 ```bash
 snakemake --workflow-profile demo-profile/ --dryrun
 ```
+
+??? example "Command breakdown"
+
+    | Command line option                     | Description |
+    | --------------------------------------  | ----------- |
+    | `snakemake`                             | The call to the Snakemake program |
+    | `--workflow-profile demo-profile/`      | The option to specify the path to the workflow profile directory containing a `config.yaml` file with resources allocations and command line options  |
+    | `--dryrun`                              | Tell Snakemake to perform a dryrun rather than execute the workflow |   
 
 !!! tip "Snakefiles named 'snakefile'"
 
