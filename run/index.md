@@ -29,12 +29,11 @@ There are also other tables to browse on the glossary. Please let us know if the
 What do we mean when we say **workflow**? Well, let's picture some typical steps for a phylogenomic analysis:
 
 1. Download genomes of interest and their annotations
-2. Extract annotated regions of each genome (*e.g.* longest transcript from of each gene)
-3. Predict orthology between transcripts of different species
-4. Align orthologous sequences
-5. Filter poorly aligned sequences
-6. Create a phylogeny for each aligned gene
-7. Assess rates of evolution across gene trees
+2. Extract annotated regions of each genome (*e.g.* longest transcript from of each gene) and predict orthology between transcripts of different species
+3. Align orthologous sequences
+4. Filter poorly aligned sequences
+5. Create a phylogeny for each aligned gene
+6. Assess rates of evolution across gene trees
 
 Or:
 
@@ -42,15 +41,15 @@ Or:
 
 This visualization of a workflow is called a **rule graph**. In this image, the sheafs of paper represent files (annotated with their file extensions) and the circles represent computational actions performed on those files (annotated with the description of that action). 
 
-You can see that each of these steps requires input files, produces output files, and likely has an associate piece of software or a custom script written by the researcher. These steps and the tools associated with them are your analytical workflow - **the output of one step becomes the input of the next step**.
+You can see that each of these steps requires input files, produces output files, and likely has an associated piece of software or a custom script written by the researcher. These steps and the tools associated with them are your analytical workflow - **the output of one step becomes the input of the next step**.
 
-Importantly, each step needs to be done for each sample or gene. For steps 1 and 2, you may have to run whatever tool you use for every sample in your data set, maybe dozens or even hundreds of times. For steps 3-7, you may have to run whatever tool you use for every gene in your analysis, possibly thousands of times.
+Importantly, each step needs to be done for each sample or gene or other discrete analysis element. For steps 1 and 2, you may have to run whatever tool you use for every sample in your data set, maybe dozens or even hundreds of times. For steps 3-7, you may have to run whatever tool you use for every gene in your analysis, possibly thousands of times.
 
-Let's take a look at a single step, (4) align orthologous sequences. If we use a common program, such as [MAFFT :octicons-link-external-24:](https://en.wikipedia.org/wiki/MAFFT){ target="_blank" }, which aligns a single sequence at a time, what are our possible solutions to automate this for our potentially thousands of sequences?
+Let's take a look at a single step, (3) align orthologous sequences. If we use a common program, such as [MAFFT :octicons-link-external-24:](https://en.wikipedia.org/wiki/MAFFT){ target="_blank" }, which aligns a single sequence at a time, what are our possible solutions to automate this for our potentially thousands of sequences?
 
 ### A bash script for every step
 
-One of the most common way to automate analyses prior to workflow languages was the use of custom shell scripts. A shell is the program behind the text interface with which you interface with your computer, with `bash` being one of the most common shells. Shells themselves are like mini-programming languages, giving users the power to write code and commands to customize their environment. With that being said, one could write a **bash script** that loops over every unaligned sequence file in a directory, runs an alignment program on it, and saves the output:
+One of the most common ways to automate analyses prior to workflow languages was the use of custom shell scripts. A **shell** is the program behind the text interface on your terminal, with `bash` being one of the most common shells for Unix-like OSes. Shells themselves are like mini-programming languages, giving users the power to write code and commands to customize their environment. With that being said, one could write a **bash script** that loops over every unaligned sequence file in a directory, runs an alignment program on it, and saves the output:
 
 ```bash
 #!/bin/bash
@@ -73,7 +72,7 @@ done
     | `mafft "$locus" > /path/to/alignments/"$locus_base".fasta` | This runs mafft on the current locus file and stores the resulting alignment using the same filename in a different folder. |
     | `done`                                                     | Bash keyword for ending code blocks. |
 
-One might (and should) save this set of commands as a script for reproducibility, possibly calling it something like `04_run_mafft.sh`. That way when you look back at your analysis, you'll be able to easily remember what commands you ran and be able to run them again if needed.
+One might (and should) save this set of commands as a script for reproducibility, possibly calling it something like `03_run_mafft.sh`. That way when you look back at your analysis, you'll be able to easily remember what commands you ran and be able to run them again if needed.
 
 Of course, this is just one step in our workflow. We would likely need a script for each step: `01_download_samples.sh`, `02_extract_genes.sh`, ... and so on. Then we'd have to run them each individually and deal with individual errors, or perhaps write a meta-script that runs each of them sequentially as a sort of pseudo-workflow script.
 
@@ -149,7 +148,7 @@ mafft "$locus" > alignments/"$locus_base".aln
     | `locus_base=$(basename "$locus" .fasta)` |  This uses the basename command to store the filename as a string without the `.fasta` extension. |
     | `mafft "$locus" > alignments/"$locus_base".aln` | This runs mafft on the current locus file and stores the resulting alignment using the same filename in a different folder. |
 
-In this case, we specify that this job array will create 1453 tasks by using `#SBATCH --array=1-1453`. Then, in our script, we use a command called `sed` to pull the locus ID as the line number in the manifest file and use that ID as the basis for input and ouput from our alignment program. Then in the alignment program itself, instead of specifying an exact file name, we use the file name constructed from the locus ID. This will be constructed and submitted as a separate task for all 1453 loci.
+In this case, we must know ahead of time how many times we want to run this step, *i.e.* how many genes we want to align. In this made up example, let's say we have 1453 genes, so we specify that this job array will create 1453 tasks by using `#SBATCH --array=1-1453`. Then, in our script, we use a command called `sed` to pull the locus ID as the line number in the manifest file and use that ID as the basis for input and ouput from our alignment program. Then in the alignment program itself, instead of specifying an exact file name, we use the file name constructed from the locus ID. This will be constructed and submitted as a separate task for all 1453 loci.
 
 Job arrays effectively solve the parallelization problem: as many of the tasks that there are resources available for will be submitted at once. However, you would still need to maintain a separate job array script for each step of the workflow.
 
@@ -181,9 +180,9 @@ rule mafft_align:
         "mafft {input} > {output}"
 ```
 
-At the bare minimum, rules require both **input** and **output** along with the command to run. Here this comes in the form of a **shell directive** , which means snakemake will take whatever is typed in there and plug directly into the shell. Other ways to run commands are with **run** and **script** directives, which we'll learn more about in the Develop part of the workshop. The ability to run different types of commands with access to the variables defined in the workflow script is one of Snakemake's big advantages over bash scripts or job arrays.
+At the bare minimum, rules require both **input** and **output** along with the command to run. Here this comes in the form of a **shell directive** , which means snakemake will take whatever is typed in there and plug directly into the shell, substituting the appropriate parameters for each task. Other ways to run commands are with **run** and **script** directives, which we'll learn more about in the Develop part of the workshop. The ability to run different types of commands with access to the variables defined in the workflow script is one of Snakemake's big advantages over bash scripts or job arrays.
 
-There are also other directives that can be added to a rule, such as `params:`, `log:`, `resources:`, and so on. Again, we will cover these more during the Develop portion of the workshop.
+There are also other **directives** that can be added to a rule, such as `params:`, `log:`, `resources:`, and so on. Again, we will cover these more during the Develop portion of the workshop.
 
 You'll notice that the use of curly brackets `{}` is prevalent in Snakemake. In the `shell:` directive, `{input}` and `{output}` mean that Snakemake will directly plug in whatever is defined in the `input:` and `output:` directives into the shell command.
 
@@ -211,13 +210,13 @@ You may already have run into naming conventions in your own scripts which help 
 
 Every Snakemake workflow you run will have different inputs and parameters required to run it. Hopefully these are very well documented in the workflow's documentation.
 
-All of the inputs and parameters should be specified with a workflow **config file**. This is a [YAML formatted :octicons-link-external-24:](https://en.wikipedia.org/wiki/YAML){ target="_blank" } text file, which means options are usually specfied as `<option_name>: <value>`. For instance, for the very basic `mafft_align` rule above, the config file would need to specify the path to the manifest file, listing all the input fasta files:
+All of the inputs and parameters should be specified with a **config file**. This is a [YAML formatted :octicons-link-external-24:](https://en.wikipedia.org/wiki/YAML){ target="_blank" } text file, which means options are usually specfied as `<option_name>: <value>`. For instance, for the very basic `mafft_align` rule above, the config file would need to specify the path to the manifest file, listing all the input fasta files:
 
 ```yaml
 manifest_file: path/to/manifest.txt
 ```
 
-This manifest file would be parsed by the workflow and the list of files used directly or the wildcards extracted from their filenames.
+This manifest file would be parsed elsewhere in the workflow and the list of files used directly or the wildcards extracted from their filenames.
 
 ### Demo workflow
 
@@ -237,8 +236,7 @@ snakemake -j 1 -s demo.smk
     | `-j 1`              | This tells the workflow to use 1 processing core |
     | `-s demo.smk`       | The path to the workflow script file |
 
-
-What happened? We got an error referring to something about a sample_sheet. This is because we haven't done anything to prepare our particular input files for this workflow. Snakemake scripts should be generalizeable to any set of similar inputs, so we need to know how to prepare our own inputs to run through the file. The workflow documentation is crucial for this.
+What happened? We got an error referring to something about a `sample_sheet`. This is because we haven't done anything to prepare our particular input files for this workflow. Snakemake scripts should be generalizeable to any set of similar inputs, so we need to know how to prepare our own inputs to run through the file. The workflow documentation is crucial for this.
 
 Let's say we found the following documentation for this workflow:
 
@@ -251,8 +249,6 @@ Let's say we found the following documentation for this workflow:
     **Workflow inputs**
 
     This workflow requires a sample sheet that lists one sample per line. Samples must be the basenames of the input files (*e.g.* for file `sample12.txt` the corresponding line in the sample sheet should read `sample12`). You can name this sample sheet file anything you want.
-
-    The workflow expects input files to be located in a directory called `demo-data/`.
 
     **Workflow config file**
     
@@ -273,7 +269,7 @@ Now that we've followed the documentation about how to setup the inputs for the 
 > **Exercise:** Use your config file to run do a dryrun of the workflow:
 
 ```bash
-snakemake -j 1 -s demo --configfile <config file name> --dryrun
+snakemake -j 1 -s demo.smk --configfile <config file name> --dryrun
 ```
 
 ??? example "Command breakdown"
@@ -317,7 +313,7 @@ Let's generate both to see the difference.
 > **Exercise:** Generate the rulegraph for the demo workflow:
 
 ```bash
-snakemake -j 1 -s demo --configfile <config file name> --rulegraph
+snakemake -j 1 -s demo.smk --configfile <config file name> --rulegraph
 ```
 
 ??? example "Command breakdown"
@@ -359,7 +355,7 @@ Well... that's actually less useful than the table from the dryrun. Fortunately,
 > **Exercise:** Generate an image of the rulegraph with `dot`:
 
 ```bash
-snamekame -j 1 -s demo --configfile <config file name> --rulegraph | dot -Tpng > demo-rulegraph.png
+snamekame -j 1 -s demo.smk --configfile <config file name> --rulegraph | dot -Tpng > demo-rulegraph.png
 ```
 
 ??? example "Command breakdown"
@@ -384,14 +380,14 @@ If there are no errors, there should now be a file called `demo-rulegraph.png` i
 ![The rulegraph for the demo workflow, showing two rules, "count_lines" and "count_words", converging on the rule "combine_counts", which leads into the rule "aggregate", and finally the target rule "all"](demo-rulegraph.png)
 -->
 
-<center><img src="demo-rulegraph.png" alt="The rulegraph for the demo workflow, showing two rules, 'count_lines' and 'count_words', converging on the rule 'combine_counts', which leads into the rule 'aggregate', and finally the target rule 'all'"></center>
+<center><img src="../img/demo-rulegraph.png" alt="The rulegraph for the demo workflow, showing two rules, 'count_lines' and 'count_words', converging on the rule 'combine_counts', which leads into the rule 'aggregate', and finally the target rule 'all'"></center>
 
 Now this clearly shows what this workflow is doing, including the names of the rules that are run and the order in which they will be run. We see there is a branching structure to the workflow: since the rules `count_lines` and `count_words` both depend on the same input files but don't depend on each other they can be run simultaneously. The `combine_counts` rule, however, depends on output from both of those rules, so it must wait for them to complete. This leads into the `aggregate` rule and finally the target rule `all`, which is standard in most Snakemake workflows as the final rule -- it takes input but creates no output.
 
 > **Exercise:** Let's also create a DAG for this workflow given our inputs:
 
 ```bash
-snakemake -j 1 -s demo --configfile <config file name> --dag | dot -Tpng > demo-dag.png
+snakemake -j 1 -s demo.smk --configfile <config file name> --dag | dot -Tpng > demo-dag.png
 ```
 
 ??? example "Command breakdown"
@@ -411,11 +407,11 @@ snakemake -j 1 -s demo --configfile <config file name> --dag | dot -Tpng > demo-
 
 Here is what the DAG looks like:
 
-<!-->
+<!--
 ![The DAG for the demo workflow given our two sample inputs. In this case, the rules "count_lines" and "count_words" each show up twice, once for each sample. The "combine_counts" rule also shows up once for each sample, while "aggregate" and "all" appear once.](demo-dag.png)
 -->
 
-<center><img src="demo-dag.png" alt="The DAG for the demo workflow given our two sample inputs. In this case, the rules 'count_lines' and 'count_words' each show up twice, once for each sample. The 'combine_counts' rule also shows up once for each sample, while 'aggregate' and 'all' appear once."></center>
+<center><img src="../img/demo-dag.png" alt="The DAG for the demo workflow given our two sample inputs. In this case, the rules 'count_lines' and 'count_words' each show up twice, once for each sample. The 'combine_counts' rule also shows up once for each sample, while 'aggregate' and 'all' appear once."></center>
 
 Here, we see parts of the rulegraph duplicated. Specifically, the rules `count_lines` and `count_words` are run twice, once for each sample. `combine_counts` is also run twice on the output of the `count_lines` and `count_words` rules. The `aggregate` rule is run once, combining all counts from all samples, and the target rule `all` is present as the endpoint for the workflow.
 
@@ -493,7 +489,7 @@ KeyError in file "/n/holylfs05/LABS/informatics/Lab/training/snakemake-workshop/
   File "/n/holylfs05/LABS/informatics/Lab/training/snakemake-workshop/run/demo.smk", line 1, in <module>
 ```
 
-> **Exercise:** Open the `debugging-demos/debug-01-config.yml` config file in your favorite text editor* and debug the problem. Then re-run the dryrun.
+> **Exercise:** Open the `debugging-demos/01-config.yml` config file in your favorite text editor* and debug the problem. Then re-run the dryrun.
 >
 > \* If you don't have a favorite text editor, just use `nano`. Type `nano debugging-demos/01-config.yml` to open the file for editing. Type freely with the keyboard. There is no mouse functionality so use the arrow keys to navigate. Use `ctrl-o` followed by `<enter>` to save the file. Use `ctrl-x` to exit. If you make changes and use `ctrl-x` to exit without saving, you will be prompted to save the file.
 
