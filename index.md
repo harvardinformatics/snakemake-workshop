@@ -33,7 +33,7 @@ This workshop will use files hosted on a [github repository :octicons-link-exter
 
 First, login to the cluster and navigate to the location in which you want to download the repo. 
 
-#### 1. If you are familiar with *git*:
+#### 1. If you are familiar with `git`
 
 If you'd like to use the `git` command line tool, you can clone the repo as follows:
 
@@ -49,7 +49,7 @@ cd snakemake-workshop
     | `git clone https://github.com/harvardinformatics/snakemake-workshop.git` | This uses `git` to make a copy (clone) of our workshop directory, specified by the URL. |
     | `cd snakemake-workshop`                                                  | This changes your working directory to the newly cloned directory. |
 
-#### 2. If you'd rather not use *git*:
+#### 2. If you'd rather not use `git`
 
 You can also just download the repository archive directly and extract it:
 
@@ -71,7 +71,11 @@ cd snakemake-workshop-main
 
 Snakemake is the workflow management software we'll be using during the workshop. We recommend installing it through the conda/mamba software managers (For more info about conda and mamba, see [our tutorial :material-arrow-top-right:](../../resources/tutorials/installing-command-line-software-conda-mamba.md){ target="_blank" }).
 
-First, make sure the Python and conda modules are loaded into your environment:
+#### Option 1: Loading conda if you don't already have it installed
+
+If you don't already have conda or mamba installed, you will have to load the cluster modules. First, check if they are installed by typing either `conda` or `mamba` into the command line. If you see a help menu, you are good to continue. 
+
+If you see any variation of the error `command not found`, you will have to load the modules with the following:
 
 ```bash
 module load python
@@ -85,7 +89,22 @@ module load python
     | `load`   | The sub-command to run to load a given module. | 
     | `python` | The name of the module to load. |     
 
-With `conda`, you should be able to setup an environment for Snakemake with:
+Then, if you check which modules are loaded with `module list` you should see:
+
+```
+Currently Loaded Modules:
+  1) Miniforge3/25.3.1-fasrc01   2) python/3.12.11-fasrc01
+```
+
+Miniforge3 is the module that contains `conda`
+
+#### Option 2: Using your own conda installation
+
+If you already have conda/mamba installed and don't use the cluster's module, feel free to use that! Just follow the appropriate instructions below for activating your environments (or do it how you normally do it).
+
+#### 2. Creating an environment with Snakemake
+
+With `conda` loaded, you should be able to setup an environment for Snakemake with:
 
 ```bash
 conda create -n snakemake-env -c bioconda snakemake-minimal -y 
@@ -104,6 +123,28 @@ conda create -n snakemake-env -c bioconda snakemake-minimal -y
 
 With `-y` all prompts should be confirmed automatically. Then when the environment is created, activate it:
 
+#### 3. Activating the environment
+
+##### Option 1: Using the cluster module conda install
+
+If you are using the cluster's conda module's, do the following to activate your environment:
+
+```bash
+source activate snakemake-env
+```
+
+??? example "Code breakdown"
+
+    | Code            | Description |
+    | --------------- | ----------- |
+    | `source`        | Run the subsequent command as a bash script. |
+    | `create`        | The sub-command to run to activate a previously created conda environment. | 
+    | `snakemake-env` | The name of the environment to activate |
+
+##### Option 2: Using your own conda install:
+
+If you have your own conda installation, feel free to activate the environment as you normally do, but the following will likely work:
+
 ```bash
 conda activate snakemake-env
 ```
@@ -115,6 +156,8 @@ conda activate snakemake-env
     | `conda`         | Run the conda package and environment manager command line tool. |
     | `create`        | The sub-command to run to activate a previously created conda environment. | 
     | `snakemake-env` | The name of the environment to activate |
+
+##### Confirming that snakemake is installed
 
 You should be able to type `snakemake` and see the message:
 
@@ -146,7 +189,7 @@ You can also open the files by using remote desktop or RStudio server. To start 
 
 ## Workshop content
 
-Links to content will appear as the date of each session approaches!
+:material-calendar-clock: Links to content will appear as the date of each session approaches!
 
 <!-- Click the buttons below to access the workshop content.
 
