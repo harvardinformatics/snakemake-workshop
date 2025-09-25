@@ -71,7 +71,7 @@ cd snakemake-workshop-main
 
 Snakemake is the workflow management software we'll be using during the workshop. We recommend installing it through the conda/mamba software managers (For more info about conda and mamba, see [our tutorial :material-arrow-top-right:](../../resources/tutorials/installing-command-line-software-conda-mamba.md){ target="_blank" }).
 
-#### Option 1: Loading conda if you don't already have it installed
+#### Option 1: Using the cluster's conda module
 
 If you don't already have conda or mamba installed, you will have to load the cluster modules. First, check if they are installed by typing either `conda` or `mamba` into the command line. If you see a help menu, you are good to continue. 
 
@@ -125,7 +125,7 @@ With `-y` all prompts should be confirmed automatically. Then when the environme
 
 #### 3. Activating the environment
 
-##### Option 1: Using the cluster module conda install
+##### Option 1: Using the cluster's conda module
 
 If you are using the cluster's conda module's, do the following to activate your environment:
 
@@ -141,7 +141,7 @@ source activate snakemake-env
     | `create`        | The sub-command to run to activate a previously created conda environment. | 
     | `snakemake-env` | The name of the environment to activate |
 
-##### Option 2: Using your own conda install:
+##### Option 2: Using your own conda installation
 
 If you have your own conda installation, feel free to activate the environment as you normally do, but the following will likely work:
 
