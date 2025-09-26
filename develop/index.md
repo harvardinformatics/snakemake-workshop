@@ -44,7 +44,56 @@ data/sample1.txt  -->  count_lines.sh  -->  results/sample1.lines
 
 ### Writing the first Snakemake rule
 
-Create a `dev-01.smk` file in the `develop` directory. Write a rule that implements the `count_lines.sh` script. For now, you can hardcode the input and output filename (i.e. `dev_data/sample1.txt` and `results/sample1.lines`). You should have something like this:
+The main goal of a Snakemake rule is to gather inputs, compile expected outputs, and *run a command on the inputs to generate the outputs*. So, in order to convert a command or shell script to a Snakemake rule, we need to understand the syntax of Snakemake rules.
+
+First, a rule name is defined. For our first script in the `shell-scripts`, `01_count_lines.sh`, we might call the associated rule `count_lines:`. This is typed with the `rule` keyword:
+
+```python
+rule count_lines:
+```
+
+Note that the colon is required syntax.
+
+> **Question:** Snakemake is based on Python. What must happen after every colon at the end of a line of Python code (*e.g.* `if x < 10:` or `while True:`)?
+
+??? success "Click for answer"
+Code to be executed within that statement must be indented after a colon.
+</details>
+
+In Python, these are referred to as **blocks of code**. In Snakemake, we simply call these **sections** or **specifications**, because these aren't necessarily doing any computations, but rather compiling information to perform tasks.
+
+After you've named your rule, you need to give the rule information through **directives**. The required directives for a Snakemake rule are **input**, **output**, and a directive to run a command, either **shell**, **run**, or **script**. There are other directives that allow us to control many other aspects of the command to be run and we'll talk about those later on, but to start we'll focus on these three tasks.
+
+#### Input specification
+
+To specify the inputs of your rule, you simply type `    input: <name of input file>` after your rule declaration. For example, if we wanted our `count_lines` rule to run only on sample1 in our dataset, we would type:
+
+```python
+rule count_lines:
+    input: "data/sample1.txt"
+```
+
+Notice the indentation, which is required. Also notice that even though `input:` ends with a colon, since we keep the specification on the same line, no indentation is required.
+
+#### Output specification
+
+Next, we would specify our output directive with `    output: <name of expected output file>`.
+
+> **Exercise:** Create a `dev-01.smk` file in the `develop` directory. Copy what we have so far (rule declaration and input specification) into the file. Now, add an output specification assuming we are only running this rule on sample1.
+
+??? success "Solution"
+
+    ```python
+    rule count_lines:
+        input: "data/sample1.txt"
+        output: "results/sample1.lines"
+    ```
+
+Conveniently, for output files, Snakemake will create any directories specified if needed. For example, in the above output section, we say to store the files in `results/` relative to our current directory. At this point, no `results/` directory exists, but Snakemake will still be able to run and just create it for us. If `results/` already existed when we ran our workflow, it would then check whether `results/sample1.lines` exists and, depending on whether the input files or script had been updated, may or may not run the command again to (re-)generate it.
+
+#### Running a command with the `shell` directive
+
+Now that we have the input and output files specified with our rule, we need to tell Snakemake what to do with them. For now (and commonly), we'll use the `shell` directive. We can just plugin how we would normally run our `shell-scripts/01_count_lines.sh` script:
 
 ```python
 rule count_lines:
@@ -54,7 +103,15 @@ rule count_lines:
         "bash shell-scripts/01_count_lines.sh {input}"
 ```
 
-What if we didn't want to rely on the shell script? We could directly put the bash command in the `shell` directive:
+Since this line is a bit longer, we've placed the command on a different line from the `shell:` directive itself and because it follows a colon on a new line, we've indented it!
+
+Syntactically, the quotes around the command are required. For multi-line commands, use Python's triple quote syntax (`"""`; see below).
+
+Importantly, notice that we pass this string as an argument to the `01_count_lines.sh` script: `{input}`. This is super important! The curly brackets are the shell directive's way of accessing information from the other directives in the rule! Here, `{input}` means, "substitute in the value provided in the `input:` section above." You will use curly brackets in this way a lot, so if you have any questions about it, please ask!
+
+#### Incorporating our script directly in the rule
+
+What if we didn't want to rely on the shell script? Since the script is very simple, and Snakemake's `shell` directive can take any shell command, we could directly put the bash command in the script into the `shell` directive:
 
 ```python
 rule count_lines:
@@ -64,16 +121,25 @@ rule count_lines:
         "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
-!! Note
-    The `shell` directive allows you to run any shell command, and you can use `{input}` and `{output}` to refer to the input and output files of the rule. The double curly braces `#123;&#123 &#125;&#125;` are used to escape the curly braces in the `awk` command, so that Snakemake does not interpret them as placeholders.
+!!! warning "Curly brackets in shell commands"
+
+    Recall that Snakemake uses curly brackets to substitute information from the rule's other directives. However, in the command above, we use curly brackets with `awk`'s syntax. In order for Snakemake to know not to try to substitute something into `awk`'s curly brackets, we have to **escape** them, by surrounding the whole statement in double curly brackets: `#123;&#123 &#125;&#125;`. You will need to do this any time you want to use curly brackets in your shell commands.
 
 In practice, whether you want to directly write the command in your Snakemake file or call an external script is up to you. In this workshop, we will directly write the commands in the Snakemake file because they are short and easy to read. Directly writing the command in the `shell:` section has the benefit of making the workflow more self-contained and easier to understand. On the other hand, calling an external script is useful for running a more complex command. Note that if you do find yourself making a Snakemake workflow with few rules that all refer to complex scripts, it may be worth considering breaking up that complex script into multiple steps/rules. We will discuss this later in the section "What is the proper scope of a rule?". 
 
+<!-- i thought about having them run the workflow here, but that might be confusing when about to teach about rule: all -->
+
 ### Rule all
 
-Having a rule does not do anything by itself. You will need a special rule called `all` that specifies the final output of your workflow. This is because Snakemake needs a way to know what the final product of your workflow is, so it knows what to work towards. Remember: snakemake is based on GNU Make, which is typically used to build software, and in that context, the `all` rule is like the final completed executable. 
+By default, Snakemake will execute the first rule in your script when run. If necessary, it will run other rules to create the inputs for the first rule. This works for our simple example, with one rule and hardcoded inputs and outputs. But for more complex workflows, it is natural to write rules top-to-bottom, which conflicts with this Snakemake behavior (it would look at the first rule and see all the inputs exist and do nothing).
 
-When you begin to write a workflow, however, you build it up in steps. Rather than specifying the final For now, our workflow only has one output, so we can write that as our desired final output:
+So to make sure SNakemake knows what the final product of your workflow is, and to keep things more readable (top-to-bottom), the standard when writing Snakemake workflows is to place a rulle called `all` at the top of your script. This rule will have no `output:` directive and no command to run (*e.g.* with `shell:`). Instead, it will only have an `input:` directive, and **the specified inputs to this rule should be the final expected outputs of your entire workflow.**
+
+Recall that Snakemake is based in principle on GNU Make, which is used to build software. In GNU Make, the final target is the executable or binary for the softare. In that context, the `all` rule is like the final completed executable.
+
+`rule: all` also helps us think about the end goal of our workflow. Though, admittedly in practice to debug workflows as you writ them it may be easier to write one rule at a time, updating `rule: all` each time you write a new rule in your workflow.
+
+For now, our workflow only has one output, so we can write that as our desired final output:
 
 ```python
 rule all:
@@ -93,14 +159,16 @@ rule count_lines:
         "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ``` 
 
+Notice that the `output` for `rule count_lines` is now the `input` for `rule: all`.
+
 Let's leave everything hard coded for now so that we can focus on getting the workflow working. Soon, we will learn about how to use wildcards so that these rules can be generalized and take multiple files. 
 
-### Testing your Snakemake workflow pt 1
+### Testing your Snakemake workflow with `--dryrun`
 
-The first thing you should do to test your Snakemake workflow is to run it with the `--dry-run` option. This will show you what Snakemake would do without actually running any commands. You can run this command in the terminal:
+The first thing you should do to test your Snakemake workflow is to run it with the `--dryrun` option. This will show you what Snakemake would do without actually running any commands. You can run this command in the terminal:
 
 ```bash
-snakemake --snakefile develop/dev-01.smk --dry-run
+snakemake --snakefile develop/dev-01.smk --dryrun
 ```
 
 A dry run is for checking the logic of your workflow. It does not read or modify any files. Its main function is to check each rule and find out if the required input files are available or will be generated by another rule. Make sure to read the output of your dry run to check that the logic matches your intention. 
@@ -161,7 +229,11 @@ Next time we want to run the workflow, we can first run `snakemake -s <snakefile
 
 ### Generalizing with wildcards
 
-Now that we have a working rule, let's generalize it so that it can work with multiple input files. Create a `dev-02.smk` file in the `develop` directory and copy over the contents of `dev-01.smk`. Now, we will modify the rules to incorporate wildcards. Wildcards are placeholders that Snakemake uses to match file names. For example, we can change our `count_lines` rule to use a wildcard for the input file:
+Of course, in our rule `count_lines`, we've currently just hardcoded a single file for the rule to run on. It would be pretty pointless if we had to change the file name each time we wanted to run the rule. Thankfully, Snakemake (and other workflow managers) have ways to generalize rule to lists of input files: **wildcards**.
+
+Wildcards are placeholders that Snakemake uses to match patterns in, say, file names.
+
+> **Task:** Create a `dev-02.smk` file in the `develop` directory and copy over the contents of `dev-01.smk`. Now, we will modify the rules to incorporate wildcards. For example, we can change our `count_lines` rule to use a wildcard for the input file:
 
 ```python
 rule count_lines:
@@ -171,13 +243,23 @@ rule count_lines:
         "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
-The part of the file path that we are changing for the wildcards is the part where the filenames go `sample1`, `sample2`, etc. This is the variable part of the filename. However, just because we created a wildcard doesn't mean that Snakemake will scan your filesystem to look for files that match that pattern. The wildcards function only as a way to define the structure of the input and output file paths. In our case, we will need to provide a list of samples for Snakemake to process. 
+Notice now in the `input` and `output` sections how we've replaced the actual file name with `{sample}`. 
+
+In `shell:` directives, recall that curly brackets are used to substitute information from the other directives in the rule. Here, they are used to substitute patterns within file names.
+
+The part of the file path that we are changing for the wildcards is the part where the filenames go `sample1`, `sample2`, etc. This is the variable part of the filename. Essentially, somewhere we have defined a pattern. As Snakemake works backwords it will encounter this rule and see that `{sample}` belongs to the input of some other rule and will fill in the values appropriately.
+
+However, just because we created a wildcard doesn't mean that Snakemake will scan your filesystem to look for files that match that pattern. The wildcards function only as a way to define the structure of the input and output file paths. In our case, we will need to provide a list of samples for Snakemake to process. 
+
+!!! tip "Snakemake is based on Python
+
+    Remember, a Snakemake script is just a Python script with extra syntax. This means we can use Python code in our Snakemake script, which is especially useful for workflow setup!
 
 ```python
 SAMPLES = ["sample1", "sample2"]
 ```
 
-Now that we've listed the samples, how do we actually substitute the wildcards with those sample names? In Snakemake, there is a special function called `expand()` that we can use to fill in the wildcards with the actual sample names. For example, 
+Here, we've simply created a list of our samples as strings. Next, we need to substitute the wildcards with those sample names. In Snakemake, there is a special function called `expand()` that we can use to fill in the wildcards with the actual sample names. For example, 
 
 ```python
 expand("data/{sample}.txt", sample=['sample1', 'sample2'])
@@ -189,7 +271,7 @@ becomes
 ["data/sample1.txt", "data/sample2.txt"]
 ```
 
-Where will we put this `expand()` function? We can put it in the `input` section of rules. `expand` is rarely used in the output section of rules. In our simple Snakemake workflow, we only need to put the `expand()` function in the `input` section of final `all` rule. Our `dev-02.smk` should now look like this:
+Where will we put this `expand()` function? We can put it in the `input` section of rules. In our simple Snakemake workflow, we only need to put the `expand()` function in the `input` section of final `all` rule. Our `dev-02.smk` should now look like this:
 
 ```python
 SAMPLES = ["sample1", "sample2"]
@@ -205,6 +287,12 @@ rule count_lines:
 ```
 
 Run `snakemake -s dev-02.smk -R clean --cores 1` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dry-run`. If that looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
+
+> **Exercise:** Generate the rulegraph and the DAG for `dev-02.smk`.
+
+??? success "Solution"
+
+    See `complete/dev-02-rulegraph.png` and `complete/dev-02-dag.png`.
 
 #### More advanced `expand`ing
 
@@ -222,23 +310,40 @@ becomes
 
 ### Exercises 
 
+#### Adding a new rule 1
+
 In the next few sections, we will gradually build new rules for our Snakemake workflow based on the bash scripts in the `develop/shell-scripts` directory. We will name them `dev-03.smk`, `dev-04.smk`, etc. As we test and run our Snakemake workflows, we will be removing the `results` directory and its contents using the `clean` rule. This is because when we do a dry run, Snakemake checks to see if any intermediate or final files have already been created by the rules, and if so, excludes that rule from the dry run logic. This could cause unexpected behavior if we are intending to test the entire logic of the workflow.
 
-> **Exercise**: Try to add another rule `count_words` that counts the number of words in each input file. This should do the same thing as the shell script `shell-scripts/02_count_words.sh`. When you add the new rule, make sure to also modify the `all` rule to reflect the new workflow logic and the final product. If you are lost, consult your workflow diagram that you made earlier. Test your code with `--dry-run` and then run it for real to make sure it worked. Remember to remove the `results` directory before running the workflow again.
+> **Exercise**: Copy `dev-02.smk` to `dev-03.smk`. In `dev-03.smk`, try to add another rule `count_words` that counts the number of words in each input file. This should do the same thing as the shell script `shell-scripts/02_count_words.sh`. When you add the new rule, make sure to also modify the `all` rule to reflect the new workflow logic and the final product. If you are lost, consult your workflow diagram that you made earlier. Test your code with `--dryrun` and then run it for real to make sure it worked. Remember to remove the `results` directory before running the workflow again. Generate the rulegraph and DAG for `dev-03.smk`.
 
-> **Solution**: Only showing new or modified rules
+??? success "Solution"
 
-```python
-rule all:
-    input: 
-        expand("results/{sample}.{ext}", sample=SAMPLES, ext=["lines", "words"])
+    ```python
+    SAMPLES = ["sample1", "sample2"]
 
-rule count_words:
-    input: "data/{sample}.txt"
-    output: "results/{sample}.words"
-    shell:
-        "wc -w {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
-```
+    rule all:
+        input: 
+            expand("results/{sample}.{ext}", sample=SAMPLES, ext=["lines", "words"])
+
+    rule count_lines:
+        input: "data/{sample}.txt"
+        output: "results/{sample}.lines"
+        shell:
+            "wc -l {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
+
+    rule count_words:
+        input: "data/{sample}.txt"
+        output: "results/{sample}.words"
+        shell:
+            "wc -w {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
+
+    rule clean:
+        shell: "rm -r results/*"
+    ```
+
+    Rulegraph: `complete/dev-03-rulegraph.png`, DAG: `dev-03-dag.png`
+
+#### Adding a new rule 2
 
 The next shell script we want to add to our Snakemake workflow is the `03_combine_counts.sh` script, which will combine the line and word counts for each sample into a single output file for each sample. This rule will take as an input the line and word count files for each sample. The final output will now be a `.summary` file for each sample. As before, we will need to edit both `rule all` as well as add the new `rule combine_counts`. Additionally, we will have two inputs for the `combine_counts` rule: the line count file and the word count file. 
 
@@ -285,51 +390,76 @@ rule example:
         """
 ```
 
-> **Exercise**: Try making the necessary edits now in a new file called `dev-04.smk`. You will need to replace the input for `rule all` with the summary files and add a rule `combine_counts`.
+> **Exercise**: Copy `dev-03.smk` to `dev-04.smk`. Try making the necessary edits to add the rule to combine the outputs of the other two rules (as done ine `shell-scripts/03_combine_counts.sh`) now in `dev-04.smk`. You will need to replace the input for `rule all` with the summary files and add a rule `combine_counts`. Make a rulegraph and a DAG for 
+`dev-04.smk`.
 
-**Solution**: Only showing modified rules.
+??? success "Solution"
 
-```python
-rule all:
-    input: expand("results/{sample}.summary", sample=SAMPLES)
+    ```python
+    SAMPLES = ["sample1", "sample2"]
 
-rule combine_counts:
-    input:
-        lines="results/{sample}.lines",
-        words="results/{sample}.words"
-    output:
-        summary="results/{sample}.summary"
-    shell:
-        """
-        echo -n "lines\t" > {output.summary}
-        cat {input.lines} >> {output.summary}
-        echo -n "words\t" >> {output.summary}
-        cat {input.words} >> {output.summary}
-        """
-```
+    rule all:
+        input: 
+            expand("results/{sample}.summary", sample=SAMPLES)
+
+    rule count_lines:
+        input: "data/{sample}.txt"
+        output: "results/{sample}.lines"
+        shell:
+            "wc -l {input} | awk '{{print $1}}' > {output}"
+
+    rule count_words:
+        input: "data/{sample}.txt"
+        output: "results/{sample}.words"
+        shell:
+            "wc -w {input} | awk '{{print $1}}' > {output}"
+
+    rule combine_counts:
+        input:
+            lines="results/{sample}.lines",
+            words="results/{sample}.words"
+        output:
+            summary="results/{sample}.summary"
+        shell:
+            """
+            echo -n "lines\t" > {output.summary}
+            cat {input.lines} >> {output.summary}
+            echo -n "words\t" >> {output.summary}
+            cat {input.words} >> {output.summary}
+            """
+
+    rule clean:
+        shell: "rm -r results/*"
+    ```
+
+    Rulegraph: `complete/dev-04-rulegraph.png`, DAG: `dev-04-dag.png`
 
 ### Aggregation/reduction rule
 
 We will now move on to writing the final rule of our Snakemake workflow, which will adapt the script `04_aggregate.sh`. This script takes all the `.summary` files and combines them into a nice tab-separated file (TSV) with a header. Until now, we have only made rules that have a one-to-one correspondence between input and outputs, i.e. each input creates a unique output. This time, the `rule aggregate` will take many files and output a single file. Because this is a more complicated rule, let's break up the exercise into steps.
 
->**Exercise**: First step: what is the input to `rule aggregate` and how would you specify it using wildcards?
+> **Question:** First step: what is the input to `rule aggregate` and how would you specify it using wildcards?
 
-**Solution**: The input to `rule aggregate` is all the `.summary` files. We know that all the summary files will be named following the pattern of `sample1.summary`, `sample2.summary`, etc. So we need to create an `expand()` function that will get all of these. 
+??? success "Answer"
 
-```python
-rule aggregate:
-    input: expand("results/{sample}.summary", sample = SAMPLES)
-```
+    The input to `rule aggregate` is all the `.summary` files. We know that all the summary files will be named following the pattern of `sample1.summary`, `sample2.summary`, etc. So we need to create an `expand()` function that will get all of these. 
 
->**Exercise**: Second step: based on the shell script, what should the output be?
+    ```python
+    rule aggregate:
+        input: expand("results/{sample}.summary", sample = SAMPLES)
+    ```
 
-**Solution**: The output should be a single named file. Because it does not vary based on the input, it should not contain any wildcards. 
+> **Question:** Second step: based on the shell script, what should the output be?
 
-```python 
-rule aggregate:
-    input: expand("results/{sample}.summary", sample = SAMPLES)
-    output: "results/combined.summary"
-```
+??? success "Answer"
+
+    The output should be a single named file. Because it does not vary based on the input, it should not contain any wildcards. 
+
+    ```python 
+    rule aggregate:
+        input: expand("results/{sample}.summary", sample = SAMPLES)
+        output: "results/combined.summary"
+    ```
 
 Now we will get to the difficult part of converting this script. First, notice how the input differs from previous rules' inputs. In our `rule combine_counts`, the input files were specified as separate lines for each count type (lines and words). So the input is a list of dictionaries like this:
 
@@ -342,7 +472,7 @@ Now we will get to the difficult part of converting this script. First, notice h
 
 Then each of those files will get referenced in the shell command when we do `{input.lines}` and `{input.words}`. The shell interpreter then sees the input as `"results/sample1.lines"` and `"results/sample1.words"`, respectively. 
 
-In contrast, when we use the `expand()` function in the `rule aggregate`, we create one big list of files that looks like this:
+In contrast, when we use the `expand()` function in the `rule aggregate`, we create one list of files that looks like this:
 
 ```python
 ["results/sample1.summary", "results/sample2.summary"]
@@ -370,33 +500,39 @@ To recap:
 * One-to-one rules (like combine_counts) use wildcards to process one set of files per sample.
 * Many-to-one rules (like aggregate) use an explicit input list (from expand()), combining all files in a single rule execution.
 
->**Exercise**: Third step: Complete the `rule aggregate` and adapt the shell command. Save this has `dev-05.smk`
+> **Exercise:** Third step: Copy `dev-04.smk` to `dev-05.smk`. Complete the `rule aggregate` and adapt the shell command. Save this has `dev-05.smk`.
 
-```python
-rule aggregate:
-    input:
-        expand("results/{sample}.summary", sample = SAMPLES)
-    output:
-        "results/aggregate-summary.tsv"
-    shell:
-        """
-        echo -e "sample\tlines\twords" > {output}
-        for summary_file in {input}; do
-            SAMPLE_NAME=$(basename "$summary_file" .summary)
-            LINES=$(grep -e "^lines\t" "$summary_file" | cut -f2)
-            WORDS=$(grep -e "^words\t" "$summary_file" | cut -f2)
-            echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
-        done
-        """
-```
+??? success "Solution"
 
->**Exercise:** Fourth step: Modify the `rule all` to the correct final file and then test the workflow using dry-run. 
+    ```python
+    rule aggregate:
+        input:
+            expand("results/{sample}.summary", sample = SAMPLES)
+        output:
+            "results/aggregate-summary.tsv"
+        shell:
+            """
+            echo -e "sample\tlines\twords" > {output}
+            for summary_file in {input}; do
+                SAMPLE_NAME=$(basename "$summary_file" .summary)
+                LINES=$(grep -e "^lines\t" "$summary_file" | cut -f2)
+                WORDS=$(grep -e "^words\t" "$summary_file" | cut -f2)
+                echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
+            done
+            """
+    ```
 
-```python
-rule all:
-    input:
-        "results/aggregate-summary.tsv"
-```
+> **Exercise:** Fourth step: Modify the `rule all` to the correct final file and then test the workflow using dry-run. Finally, create the rulegraph and DAG for `dev-05.smk`.
+
+??? success "Solution"
+
+    ```python
+    rule all:
+        input:
+            "results/aggregate-summary.tsv"
+    ```
+
+    Rulegraph: `complete/dev-05-rulegraph.png`, DAG: `dev-05-dag.png`
 
 In the following sections, we will introduce some more advanced topics related to Snakemake that allow you to better customize how your workflow runs. It will be lighter on coding exercises because there is a lot to cover.
 
