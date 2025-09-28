@@ -406,13 +406,13 @@ rule example:
         input: "data/{sample}.txt"
         output: "results/{sample}.lines"
         shell:
-            "wc -l {input} | awk '{{print $1}}' > {output}"
+            "wc -l {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
 
     rule count_words:
         input: "data/{sample}.txt"
         output: "results/{sample}.words"
         shell:
-            "wc -w {input} | awk '{{print $1}}' > {output}"
+            "wc -w {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
 
     rule combine_counts:
         input:
