@@ -248,7 +248,7 @@ Let's say we found the following documentation for this workflow:
 
     **Workflow inputs**
 
-    This workflow requires a sample sheet that lists one sample per line. Samples must be the basenames of the input files (*e.g.* for file `sample12.txt` the corresponding line in the sample sheet should read `sample12`). You can name this sample sheet file anything you want.
+    This workflow requires a sample sheet that lists one sample per line. Samples must be the basenames of the input files (*e.g.* for file `sample12.txt` the corresponding line in the sample sheet should be `sample12`). You can name this sample sheet file anything you want.
 
     **Workflow config file**
     
@@ -509,7 +509,7 @@ KeyError in file "/n/holylfs05/LABS/informatics/Lab/training/snakemake-workshop/
 
 ??? success "Solution"
 
-    The problem is that the config file spelled "sample_sheet" wrong. It's spelling "sample_hseet". Fixing that typo should allow the dryrun to complete successfully.
+    The problem is that the config file spelled "sample_sheet" wrong. It's spelled as "sample_hseet". Fixing that typo should allow the dryrun to complete successfully.
 
 #### `FileNotFoundError`
 
@@ -518,7 +518,7 @@ This is a pretty generic error that could happen for a lot of reasons. Fortunate
 > **Exercise:** Run the following command to see a `FileNotFoundError`. Fix the problem and re-run so the dryrun completes successfully:
 
 ```bash
-snakemake -j 1 -s demo.smk --configfile complete/demo-config1.yml --dryrun
+snakemake -j 1 -s demo.smk --configfile debugging-demos/demo-config1.yml --dryrun
 ```
 
 ??? example "Command breakdown"
@@ -636,7 +636,7 @@ snakemake -e slurm -j 1 -s demo.smk --configfile complete/demo-config.yml --dryr
 
 If you get an error, then there was likely a problem with the plugin installation and you should ask us about it. Otherwise, the dryrun should complete normally.
 
-Note the  `-e slurm` option. This tells Snakemake we'd like to use the SLURM executor plugin for submitting jobs to a SLURM cluster. Now, instead of running tasks locally (or on the login node to which you are connected), each task will be submitted as a SLURM job!
+Note the `-e slurm` option. This tells Snakemake we'd like to use the SLURM executor plugin for submitting jobs to a SLURM cluster. Now, instead of running tasks locally (or on the login node to which you are connected), each task will be submitted as a SLURM job!
 
 ### Resources
 
@@ -697,7 +697,7 @@ snakemake -e slurm -j 5 -s demo.smk --configfile complete/demo-config.yml --work
 
 Note here the `--workflow-profile` option gives the **path to the directory containing the config.yaml file** where your resources are specified. We've also included `-e slurm` and increased `-j` to `5`, meaning that at most 5 jobs will be submitted to the cluster simultaneously.
 
-> **Exercise:** Edit the workflow profile config file in `complete/demo-profile/config.yaml` to specify the following resources for the rule `count_words:`: 512MB of memory, 7 minute run time, 1 CPU, and the "shared" partition. Re-run the workflow if desired.
+> **Exercise:** Edit the workflow profile config file in our demo profile, `demo-profile/config.yaml`, to specify the following resources for the rule `count_words:`: 512MB of memory, 7 minute run time, 1 CPU, and the "shared" partition. Re-run the workflow if desired.
 
 ??? success "Solution"
 
