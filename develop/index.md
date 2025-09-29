@@ -600,7 +600,9 @@ rule count_lines:
         "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
 ```
 
-When you are writing your own glob patterns, it's important to double check what is happening by having print statements at each step. You can even create a python file just to practice globbing. For example, let's create a `glob_test.py` file with the following code to make sure that what we're globbing is correct:
+When you are writing your own glob patterns, it's important to double check what is happening by having print statements at each step. You can even create a python file just to practice globbing. 
+
+> **Activity:** For example, let's create a file named `glob_test.py` with the following code to make sure that what we're globbing is correct. Then in your terminal, run `python glob_test.py` to double check that you are getting the right wild cards.
 
 ```python
 import glob
@@ -619,7 +621,7 @@ for txt_file in glob.glob("data/*.txt"):
 print(f"Found samples using regular python glob: {SAMPLES}")
 ```
 
-Then in your terminal, run `python glob_test.py` to double check that you are getting the right wild cards. If you have a more complicated file pattern that you want to match, LLMs are decent at generating regular expressions to capture the parts of paths that you are interested in. A combination of feeding the LLMs some sample file paths, the part you want to extract, and trial and error with a test script, is a good way to do more advanced globbing.
+If you have a more complicated file pattern that you want to match, LLMs are decent at generating regular expressions to capture the parts of paths that you are interested in. A combination of feeding the LLMs some sample file paths, the part you want to extract, and trial and error with a test script, is a good way to do more advanced globbing.
 
 ### Using samplesheets
 
@@ -629,14 +631,16 @@ While globbing for your files is effective, it does have some drawbacks.
 2. There is no record of the original file paths, which can make debugging more difficult. If you accidentally add a file that you didn't want, but that matches the glob, it'll have downstream effects.  
 3. Files that don't match the glob are silently skipped over, which can lead to incomplete analysis if you're not careful. 
 
-Another way to manage your inputs is by listing your samples in a samplesheet file and reading that in. Because snakemake is written in Python, you can use any Python code to read in your samplesheet file. To follow along, create a samplesheet called `samplesheet.txt` in the `develop` directory with the following contents:
+Another way to manage your inputs is by listing your samples in a samplesheet file and reading that in. Because snakemake is written in Python, you can use any Python code to read in your samplesheet file. 
+
+> **Activity:** To follow along, create a samplesheet called `samplesheet.txt` in the `develop` directory with the following contents:
 
 ```
 sample1
 sample2
 ```
 
-Now, we can use base python to read that text file at the top of our snakefile. Create a new snakefile based off of `dev-05.smk` and call it `dev-samplesheet.smk`. Replace the first line `SAMPLES = ["sample1", "sample2"]` with:
+> Now, we can use base python to read that text file at the top of our snakefile. Create a new snakefile based off of `dev-05.smk` and call it `dev-samplesheet.smk`. Replace the first line `SAMPLES = ["sample1", "sample2"]` with:
 
 ```python
 SAMPLES = []
@@ -646,8 +650,7 @@ with open("samplesheet.txt", "r") as f:
 
 What this does is read the `samplesheet.txt` file line by line, strips away whitespace (`line.strip()`), and stores the result in the `SAMPLES` list. This `SAMPLES` list is identical to `["sample1", "sample2"]`, except that it was generated dynamically from the contents of the `samplesheet.txt` file.
 
-!!! Question
-    What do you think would happen if we had sample3 in our `samplesheet.txt` file? Try it out!
+> ** Question: ** What do you think would happen if we had sample3 in our `samplesheet.txt` file? Try it out!
 
 For more complicated samplesheets, you can use the `pandas` library to read in a CSV or other tab-delimited file. This is useful if you have a collection of metadata associated with each sample, or a column of sample names plus a column of file paths. `pandas` comes pre-installed when you install snakemake. Below is an example CSV of forward and reverse reads and how it might be parsed into a workflow:
 
@@ -681,6 +684,8 @@ rule process_sample:
         "cat {input.R1} {input.R2} | wc -l > {output}"
 ```
 
+Note though that in order to propagate information about your filenames back through other rules, we are still using wildcards (`{sample}`). So while you can be less organized while using sample sheets, good file naming convensions are still crucial.
+
 ### Using input functions
 
 Sometimes you may want to use more complex logic to determine the input files for a rule. When you might have a multi-line specification to define a set of files, it can be useful to encapsulate that logic in a function. Snakemake allows you to define input functions that can take wildcards as arguments and return the appropriate file paths. For example, you might want to use logic to check that a file exists before adding it to the list. In the below code, we only want to get the fasta files if both the reverse and forward reads exist:
@@ -703,7 +708,7 @@ rule process_sample:
         "cat {input.R1} {input.R2} | wc -l > {output}"
 ```
 
-## Passing information to external scripts
+## `script`: Passing information to external scripts
 
 So far we have just used shell commands in our rules. Sometimes, we might want to use external scripts in python, R, or other languages. To do this, we can use the `script:` directive in our rules in place of `shell:`. Within python or R scripts, you can access Snakemake input, output, and other objects using the `snakemake` object that will be passed to that script's environment. For example:
 
@@ -720,7 +725,11 @@ rule run_python_script:
 import pandas as pd
 
 df = pd.read_csv(snakemake.input[0])
+
+# ...
 # Do some processing
+# ...
+
 df.to_csv(snakemake.output[0])
 ```
 
@@ -730,15 +739,19 @@ Similarly, this is how it might look inside an R script:
 library(dplyr)
 
 df <- read.csv(snakemake@input[["data"]])
+
+# ...
 # Do some processing
+# ...
+
 write.csv(df, snakemake@output[["results"]])
 ```
 
 In the following sections, we'll learn about more customization Snakemake can do. Things like params, configs, etc, are also passed to the external scripts through the `snakemake` object and can be accessed in the same way.
 
-## Customizing how rules are run
+## Additional directives: customizing how rules are run
 
-In this section we will learn important concepts for controlling the execution of rules in Snakemake. Most bioinformatics workflows are complex and require parameters, compute resources, and software dependencies. Here is where we'll go over the ways to specify that in a rule. 
+In this section we will learn important concepts for controlling the execution of rules in Snakemake. Most bioinformatics workflows are complex and require parameters, compute resources, and software dependencies. In addition to the typical `input`, `output`, and `shell`/`script`/`run` directives, Snakemake has other directives to use within rules.
 
 ### Params
 
@@ -788,7 +801,7 @@ rule align_sequences:
 
 ```
 
-Because of the way we named these parameters in the rule, it actually makes the command line more readable. 
+Because of the way we named these parameters in the rule, it actually makes the command line more readable. **Be sure to remember the comma after each param**. That is required syntax for Snakemake.
 
 Importantly, just because we put the number of threads as a parameter, that doesn't mean that the rule will actually run with that many threads. Parameters are just keywords that you tell the tool to use; they don't enforce any behavior on their own. In the next section, we will see how to specify the actual compute resources that a rule should use. If we try to run this rule on a machine that doesn't have the required number of CPUs, it may run more slowly because bwa is expecting 4 CPUs. 
 
@@ -1042,4 +1055,4 @@ It is good practice to name your logs based on the rule, so that you know where 
 
 ## Checkpointing
 
-## Writing profiles & Config files
+<!-- aggregate/merge vs. filter vs. split -->
