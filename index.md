@@ -189,17 +189,17 @@ You can also open the files by using remote desktop or RStudio server. To start 
 
 ## Workshop content
 
-:material-calendar-clock: Links to content will appear as the date of each session approaches!
+<!-- :material-calendar-clock: Links to content will appear as the date of each session approaches! -->
 
-<!-- Click the buttons below to access the workshop content.
+Click the buttons below to access the workshop content.
 
 Part 1: Running a Snakemake workflow
 
-[Snakemake Run](run/run.md){ .md-button .md-button--primary }
+[Snakemake Run](run/){ .md-button .md-button--primary }
 
 Part 2: Developing a Snakemake workflow
 
-:construction_site: Under construction, check back soon! :construction: -->
+:construction_site: Under construction, check back soon! :construction:
 
 <!-- [Snakemake Develop](run/run.md){ .md-button .md-button--primary } -->
 
