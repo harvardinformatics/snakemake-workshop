@@ -615,9 +615,9 @@ This alone, however, isn't that helpful for large workflows since it is limited 
 
 ### Executor plugins
 
-Snakemake integrates with job schedulers by using a set of **plugins**. These plugins are just additional software packages. See the list of plugins in the [Snakemake plugin catalogue :octicons-link-external-24:](https://snakemake.github.io/snakemake-plugin-catalog/index.html){:target="_blank"}. Here, you'll notice a series of **executor** plugins, which are used specifically to run jobs on specific job schedulers.
+Snakemake integrates with job schedulers by using a set of **plugins**. These plugins are just additional software packages. See the list of plugins in the [Snakemake plugin catalog :octicons-link-external-24:](https://snakemake.github.io/snakemake-plugin-catalog/index.html){:target="_blank"}. Here, you'll notice a series of **executor** plugins, which are used specifically to run jobs on specific job schedulers.
 
-> **Exercise:** Find the **slurm executor** plugin on the plugin catalogue page and read the documentation to find out how to install it, then install it in your environment. Run the following to make sure it is installed:
+> **Exercise:** Find the **slurm executor** plugin on the plugin catalog page and read the documentation to find out how to install it, then install it in your environment. Run the following to make sure it is installed:
 
 ```bash
 snakemake -e slurm -j 1 -s demo.smk --configfile complete/demo-config.yml --dryrun
@@ -761,6 +761,8 @@ Think of the workflow profile as the config for Snakemake itself, specifying pro
 ## End Part 1
 
 Let us know if you have any questions and be sure to attend part 2, Develop, where we'll learn how to actually write a Snakemake pipeline!
+
+---
 
 <!-- --------------------------------- -->
 <!-- Page specfic CSS -->
