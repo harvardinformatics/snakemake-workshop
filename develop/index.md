@@ -113,17 +113,19 @@ Importantly, notice that we pass this string as an argument to the `01_count_lin
 
 What if we didn't want to rely on the shell script? Since the script is very simple, and Snakemake's `shell` directive can take any shell command, we could directly put the bash command in the script into the `shell` directive:
 
+{% raw %}
 ```python
 rule count_lines:
     input: "data/sample1.txt"
     output: "results/sample1.lines"
     shell: 
-        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
+        "wc -l {input} | awk '{{print \$1}}' > {output}"
 ```
+{% endraw %}
 
 !!! warning "Curly brackets in shell commands"
 
-    Recall that Snakemake uses curly brackets to substitute information from the rule's other directives. However, in the command above, we use curly brackets with `awk`'s syntax. In order for Snakemake to know not to try to substitute something into `awk`'s curly brackets, we have to **escape** them, by surrounding the whole statement in double curly brackets: `#123;&#123 &#125;&#125;`. You will need to do this any time you want to use curly brackets in your shell commands.
+    Recall that Snakemake uses curly brackets to substitute information from the rule's other directives. However, in the command above, we use curly brackets with `awk`'s syntax. In order for Snakemake to know not to try to substitute something into `awk`'s curly brackets, we have to **escape** them, by surrounding the whole statement in double curly brackets: {% raw %}`{{ }}`{% endraw %}. You will need to do this any time you want to use curly brackets in your shell commands.
 
 In practice, whether you want to directly write the command in your Snakemake file or call an external script is up to you. In this workshop, we will directly write the commands in the Snakemake file because they are short and easy to read. Directly writing the command in the `shell:` section has the benefit of making the workflow more self-contained and easier to understand. On the other hand, calling an external script is useful for running a more complex command. Note that if you do find yourself making a Snakemake workflow with few rules that all refer to complex scripts, it may be worth considering breaking up that complex script into multiple steps/rules. We will discuss this later in the section "What is the proper scope of a rule?". 
 
@@ -148,6 +150,7 @@ rule all:
 
 Your full `dev-01.smk` file should now look like this:
 
+{% raw %}
 ```python
 rule all:
     input: "results/sample1.lines"
@@ -156,8 +159,9 @@ rule count_lines:
     input: "data/sample1.txt"
     output: "results/sample1.lines"
     shell:
-        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
+        "wc -l {input} | awk '{{print \$1}}' > {output}"
 ``` 
+{% endraw %}
 
 Notice that the `output` for `rule count_lines` is now the `input` for `rule: all`.
 
@@ -235,13 +239,15 @@ Wildcards are placeholders that Snakemake uses to match patterns in, say, file n
 
 > **Task:** Create a `dev-02.smk` file in the `develop` directory and copy over the contents of `dev-01.smk`. Now, we will modify the rules to incorporate wildcards. For example, we can change our `count_lines` rule to use a wildcard for the input file:
 
+{% raw %}
 ```python
 rule count_lines:
     input: "data/{sample}.txt"
     output: "results/{sample}.lines"
     shell:
-        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
+        "wc -l {input} | awk '{{print \$1}}' > {output}"
 ```
+{% endraw %}
 
 Notice now in the `input` and `output` sections how we've replaced the actual file name with `{sample}`. 
 
@@ -273,6 +279,7 @@ becomes
 
 Where will we put this `expand()` function? We can put it in the `input` section of rules. In our simple Snakemake workflow, we only need to put the `expand()` function in the `input` section of final `all` rule. Our `dev-02.smk` should now look like this:
 
+{% raw %}
 ```python
 SAMPLES = ["sample1", "sample2"]
 
@@ -283,8 +290,9 @@ rule count_lines:
     input: "data/{sample}.txt"
     output: "results/{sample}.lines"
     shell:
-        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
+        "wc -l {input} | awk '{{print \$1}}' > {output}"
 ```
+{% endraw %}
 
 Run `snakemake -s dev-02.smk -R clean --cores 1` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dry-run`. If that looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
 
@@ -318,6 +326,7 @@ In the next few sections, we will gradually build new rules for our Snakemake wo
 
 ??? success "Solution"
 
+    {% raw %}
     ```python
     SAMPLES = ["sample1", "sample2"]
 
@@ -329,17 +338,18 @@ In the next few sections, we will gradually build new rules for our Snakemake wo
         input: "data/{sample}.txt"
         output: "results/{sample}.lines"
         shell:
-            "wc -l {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
+            "wc -l {input} | awk '{{print $1}}' > {output}"
 
     rule count_words:
         input: "data/{sample}.txt"
         output: "results/{sample}.words"
         shell:
-            "wc -w {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
+            "wc -w {input} | awk '{{print $1}}' > {output}"
 
     rule clean:
         shell: "rm -r results/*"
     ```
+    {% endraw %}
 
     Rulegraph: `complete/dev-03-rulegraph.png`, DAG: `dev-03-dag.png`
 
@@ -395,6 +405,7 @@ rule example:
 
 ??? success "Solution"
 
+    {% raw %}
     ```python
     SAMPLES = ["sample1", "sample2"]
 
@@ -406,13 +417,13 @@ rule example:
         input: "data/{sample}.txt"
         output: "results/{sample}.lines"
         shell:
-            "wc -l {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
+            "wc -l {input} | awk '{{print $1}}' > {output}"
 
     rule count_words:
         input: "data/{sample}.txt"
         output: "results/{sample}.words"
         shell:
-            "wc -w {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
+            "wc -w {input} | awk '{{print $1}}' > {output}"
 
     rule combine_counts:
         input:
@@ -431,6 +442,7 @@ rule example:
     rule clean:
         shell: "rm -r results/*"
     ```
+    {% endraw %}
 
     Rulegraph: `complete/dev-04-rulegraph.png`, DAG: `dev-04-dag.png`
 
@@ -583,6 +595,7 @@ Breaking it down:
 
 You can use this method to generate multiple sample names from a directory of files without having to list them all explicitly. You can glob more than one thing in your filename. For example:
 
+{% raw %}
 ```python
 # Extract both sample name and condition from filenames
 SAMPLES, CONDITIONS = glob_wildcards("data/{sample}_{condition}.txt")
@@ -597,8 +610,9 @@ rule count_lines:
     input: "data/{sample}_{condition}.txt"
     output: "results/{sample}_{condition}.lines"
     shell:
-        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
+        "wc -l {input} | awk '{{print \$1}}' > {output}"
 ```
+{% endraw %}
 
 When you are writing your own glob patterns, it's important to double check what is happening by having print statements at each step. You can even create a python file just to practice globbing. 
 
@@ -1057,14 +1071,16 @@ Another way to do this is to use the built-in logging library in python or the l
 
 In the above rule, `aggregate` only runs once, so we can just name the log file based on the rule. However, the other rules run multiple times, based on the number of samples. We can add wildcards to the log file name so that each instance of the rule gets its own log file.
 
+{% raw %}
 ```python
 rule count_lines:
     input: "data/{sample}.txt"
     output: "results/{sample}.lines"
     log: "logs/{sample}_count_lines.log"
     shell:
-        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
+        "wc -l {input} | awk '{{print \$1}}' > {output}"
 ```
+{% endraw %}
 
 It is good practice to name your logs based on the rule, so that you know where it is coming from. In a more complex workflow, you can instead have directories for each rule's logs. Just make sure to create those directories first (perhaps write a rule or add python code to your snakefile to create all log directories!).
 
