@@ -118,7 +118,7 @@ loci/locus3.fasta
 loci/locus1453.fasta
 ```
 
-In this example, let's call this file `loci.txt`. Then, in your SLURM script, you specify the number of jobs you'd like to submit and edit the script so it uses
+In this example, let's call this file `loci.txt`. Then, in your SLURM script, you specify the number of jobs you'd like to submit and edit the script so it uses your the `SLURM_ARRAY_TASK_ID` to cycle through your files. 
 
 
 ```bash
@@ -160,7 +160,7 @@ Today, of course, we'll be talking about [**Snakemake** :octicons-link-external-
 
 ## Snakemake
 
-Snakemake is a scripting language built from Python (with a bit of YAML formatting mixed in). Its philosophy is based on the standard `make` tool used commonly when building software: there should be an end result of the script which should be a file or files. These are the **targets**, and the workflow builds from the target backwards. It is essentially asking itself, "What do I need to do to produce these target files?"
+Snakemake is a scripting language built from Python (with a bit of YAML formatting mixed in). Its design philosophy is based on the standard `make` tool used commonly when building software: there should be an end result of the script which should be a file or files. These are the **targets**, and the workflow builds from the target backwards. It is essentially asking itself, "What do I need to do to produce these target files?"
 
 In our example of a phylogenomic analysis, the target would be the final `.csv` file with the results of the rate analysis. Snakemake would see that as the target and look backwards: Are all the gene trees that it was expecting to be there actually there? If not, then it will look backwards: Are all the alignments that it was expecting to be there actually there? And so on until it encounters a step where all the outputs exist, from which it would start moving forward through the pipeline.
 
@@ -204,7 +204,7 @@ loci/locus1453.fasta
 
 The wildcards will be determined by the pipeline inputs, but are parsed by the workflow itself. **This means its crucial to follow the file naming conventions specifed in the documentation of the workflow.**
 
-You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `locus1`, `locus2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it need to generate. 
+You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `locus1`, `locus2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it needs to generate. 
 
 ## Preparing the config file
 
@@ -220,7 +220,7 @@ This manifest file would be parsed elsewhere in the workflow and the list of fil
 
 ### Demo workflow
 
-Let's run a demo workflow. We've prepared a very simple workflow that counts the words and lines in any number of files specified. What happens if we try to run this workflow?
+Let's run a demo workflow. Using the terminal, navigate to the `run/` directory of the workshop materials. When you `ls` in this directory, you should see a file called `demo.smk`. This is a Snakemake workflow script. We've prepared a very simple workflow that counts the words and lines in any number of files specified. What happens if we try to run this workflow?
 
 > **Exercise:** Try running the workflow. For Snakemake workflows, at minimum you need to specify the path to the workflow file and the number of cores (or jobs) the workflow should use (or spawn).
 
@@ -256,7 +256,11 @@ Let's say we found the following documentation for this workflow:
 
     Also specified in the config file is the input directory with `input_directory:`. This directory should contain all the files that correspond to samples (*e.g.* `sample12.txt`). An output directory can also be specified with `output_directory:`, but this is optional. The default output directory is `results/`.
 
-> **Exercise:** Based on the workflow documentation, create a *sample sheet* and a *config file* for this workflow. In our analysis, we have two sample files to run, `sample1.txt` and `sample2.txt` located in the directory `demo-data/`.
+> **Exercise:** Based on the workflow documentation, create a *sample sheet* and a *config file* for this workflow. Place the files in the same directory as the `demo.smk` file. In our analysis, we have two sample files to run, `sample1.txt` and `sample2.txt` located in the directory `demo-data/`.
+
+??? success "Solution"
+
+    You can find the solution config file and samplesheet in the `run/complete/` directory.
 
 !!! note "Config templates"
 
@@ -306,7 +310,7 @@ That table is pretty nice, but for complex workflows it would be nice to visuali
 
 ## Rulegraphs and DAGs
 
-Snakemake can also display the outline of a workflow in visual format by printing out the **rulegraph**, which just displays how the rules are connected to each other, or the **DAG**, which stands for **directed acyclic graph** and shows how each individual task is connected. In the context of our demo, the rulegraph displays the rules while the DAG displays the rules *per sample*.
+Snakemake can also display the outline of a workflow in visual format by printing out the **rulegraph**, which displays how the rules are connected to each other. It can also create a **DAG**, which stands for **directed acyclic graph** and shows how each individual task is connected. In the context of our demo, the rulegraph displays the rules while the DAG displays the rules *per sample*.
 
 Let's generate both to see the difference.
 
@@ -355,7 +359,7 @@ Well... that's actually less useful than the table from the dryrun. Fortunately,
 > **Exercise:** Generate an image of the rulegraph with `dot`:
 
 ```bash
-snamekame -j 1 -s demo.smk --configfile <config file name> --rulegraph | dot -Tpng > demo-rulegraph.png
+snakemake -j 1 -s demo.smk --configfile <config file name> --rulegraph | dot -Tpng > demo-rulegraph.png
 ```
 
 ??? example "Command breakdown"
@@ -503,6 +507,10 @@ KeyError in file "/n/holylfs05/LABS/informatics/Lab/training/snakemake-workshop/
 >
 > \* If you don't have a favorite text editor, just use `nano`. Type `nano debugging-demos/01-config.yml` to open the file for editing. Type freely with the keyboard. There is no mouse functionality so use the arrow keys to navigate. Use `ctrl-o` followed by `<enter>` to save the file. Use `ctrl-x` to exit. If you make changes and use `ctrl-x` to exit without saving, you will be prompted to save the file.
 
+??? success "Solution"
+
+    The problem is that the config file spelled "sample_sheet" wrong. It's spelling "sample_hseet". Fixing that typo should allow the dryrun to complete successfully.
+
 #### `FileNotFoundError`
 
 This is a pretty generic error that could happen for a lot of reasons. Fortunately, there is usually more context involved in that it will usually list the file that it can't find.
@@ -522,6 +530,10 @@ snakemake -j 1 -s demo.smk --configfile complete/demo-config1.yml --dryrun
     | `-s demo.smk`                            | The path to the workflow script file |
     | `--configfile complete/demo-config1.yml` | The option to specify the path to your config file |
     | `--dryrun`                               | Tell Snakemake to perform a dryrun rather than execute the workflow |
+
+??? success "Solution"
+
+    The problem here is that the config file is not named correctly on the command line. It should be `01-config.yml`. 
 
 #### `MissingInputException`
 
@@ -544,6 +556,10 @@ snakemake -j 1 -s demo.smk --configfile debugging-demos/02-config.yml --dryrun
     | `--dryrun`                                   | Tell Snakemake to perform a dryrun rather than execute the workflow |
 
 > **Exercise:** Track down the problem with the above command and fix it so the dry run completes successfully.
+
+??? success "Solution"
+
+    The problem here is that the sample sheet lists a sample called `sample3`, but there is no corresponding file in the input directory `demo-data`. Additionally, `sample1.txt` is not how you are supposed to list samples in the sample sheet. You should just list `sample1` and `sample2` on separate lines.
 
 ### Debugging during execution
 
@@ -582,6 +598,10 @@ snakemake -j 1 -s debugging-demos/03-demo.smk --configfile debugging-demos/03-de
     | `-s debugging-demos/03-demo.smk`                  | The path to the workflow script file |
     | `--configfile debugging-demos/03-demo-config.yml` | The option to specify the path to your config file |
     | `--dryrun`                                        | Tell Snakemake to perform a dryrun rather than execute the workflow |
+
+??? success "Solution"
+
+    The dry run completed successfully, which means the logic of the workflow is sound. However, when we actually run the workflow, we get an error. The log will show that the error occurred while running the `count_words` rule and that the reason it failed was that it did not produce the expected output file `reason: Missing output files:`. You can check that the wildcard is correct (`wildcards: sample=sample2`). There should then be a printout of the exact command that was run under "Command:". Look inside and you will see that the command has a typo: instead of `wc -w` it says `wc-demo-error`. Fixing that typo in the `03-demo.smk` file should allow the workflow to complete successfully.
 
 There are lot's of things that could go wrong during the execution of a workflow, so we're not going to go through other examples. But hopefully now you at least know how to get started in tracking down any problems you encounter.
 
@@ -677,14 +697,32 @@ snakemake -e slurm -j 5 -s demo.smk --configfile complete/demo-config.yml --work
 
 Note here the `--workflow-profile` option gives the **path to the directory containing the config.yaml file** where your resources are specified. We've also included `-e slurm` and increased `-j` to `5`, meaning that at most 5 jobs will be submitted to the cluster simultaneously.
 
-> **Exercise:** Edit the workflow profile config file to specify the following resources for the rule `count_words:`: 512MB of memory, 7 minute run time, 1 CPU, and the "shared" partition. Re-run the workflow if desired.
+> **Exercise:** Edit the workflow profile config file in `complete/demo-profile/config.yaml` to specify the following resources for the rule `count_words:`: 512MB of memory, 7 minute run time, 1 CPU, and the "shared" partition. Re-run the workflow if desired.
+
+??? success "Solution"
+
+    The `count_words` rule can be specified in the `set-resources:` section of the `config.yaml` file like so:
+
+    ```yaml
+    set-resources:
+      count_lines:
+        slurm_partition: test
+        mem_mb: 1024
+        runtime: 00:01:00
+        cpus_per_task: 1
+      count_words:
+        slurm_partition: shared
+        mem_mb: 512
+        runtime: 00:07:00
+        cpus_per_task: 1
+    ```
 
 Profiles can actually be used to specify any of the command line arguments for Snakemake, including the `--configfile` and the workflow script (`-s`).
 
 > **Exercise**: Edit the workflow profile such that the following dry run completes successfully:
 
 ```bash
-snakemake --workflow-profile demo-profile/ --dryrun
+snakemake --workflow-profile demo-profile/ -s demo.smk --dryrun
 ```
 
 ??? example "Command breakdown"
@@ -694,6 +732,10 @@ snakemake --workflow-profile demo-profile/ --dryrun
     | `snakemake`                             | The call to the Snakemake program |
     | `--workflow-profile demo-profile/`      | The option to specify the path to the workflow profile directory containing a `config.yaml` file with resources allocations and command line options  |
     | `--dryrun`                              | Tell Snakemake to perform a dryrun rather than execute the workflow |   
+
+??? success "Solution"
+
+    The `configfile` needs to be added to this profile. See the solution in `run/complete/demo-profile/config.yaml`.
 
 !!! tip "Snakefiles named 'snakefile'"
 
