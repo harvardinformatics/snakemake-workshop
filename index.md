@@ -198,7 +198,9 @@ Click the buttons below to access the workshop content.
 
 #### Part 2: Developing a Snakemake workflow
 
-:construction_site: Under construction, check back soon! :construction:
+<center>
+🏗 Under construction, check back soon! 🚧
+</center>
 
 <!-- [Snakemake Develop](run/run.md){ .md-button .md-button--primary } -->
 

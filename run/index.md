@@ -517,7 +517,7 @@ KeyError in file "/n/holylfs05/LABS/informatics/Lab/training/snakemake-workshop/
 
 #### `FileNotFoundError`
 
-This is a pretty generic error that could happen for a lot of reasons. Fortunately, there is usually more context involved in that it will usually list the file that it can't find.
+This is a pretty generic error that could happen for a lot of reasons. Fortunately, there is usually more context as it will usually list the file that it can't find.
 
 > **Exercise:** Run the following command to see a `FileNotFoundError`. Fix the problem and re-run so the dryrun completes successfully:
 
