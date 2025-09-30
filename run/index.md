@@ -83,7 +83,7 @@ There are two problems with this approach:
 
 ### Job arrays
 
-**Job arrays** can help with the parallelization problem. A job array is a feature of most modern **job schedulers** that are installed on institutional clusters. A job scheduler is a a program that handles user requests for resources and allocates compute nodes based on resources available. On the Cannon cluster at Harvard, we use the [SLURM :octicons-link-external-24:](https://slurm.schedmd.com/overview.html){ target="_blank" } job scheduler.
+**Job arrays** can help with the parallelization problem. A job array is a feature of most modern **job schedulers** that are installed on institutional clusters. A job scheduler is a program that handles user requests for resources and allocates compute nodes based on resources available. On the Cannon cluster at Harvard, we use the [SLURM :octicons-link-external-24:](https://slurm.schedmd.com/overview.html){ target="_blank" } job scheduler.
 
 In a typical SLURM job, you would write a SLURM script to submit a request to run some command on a compute node:
 
