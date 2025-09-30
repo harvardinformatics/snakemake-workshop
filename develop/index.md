@@ -57,8 +57,7 @@ Note that the colon is required syntax.
 > **Question:** Snakemake is based on Python. What must happen after every colon at the end of a line of Python code (*e.g.* `if x < 10:` or `while True:`)?
 
 ??? success "Click for answer"
-Code to be executed within that statement must be indented after a colon.
-</details>
+    Code to be executed within that statement must be indented after a colon.
 
 In Python, these are referred to as **blocks of code**. In Snakemake, we simply call these **sections** or **specifications**, because these aren't necessarily doing any computations, but rather compiling information to perform tasks.
 
@@ -137,7 +136,7 @@ So to make sure SNakemake knows what the final product of your workflow is, and 
 
 Recall that Snakemake is based in principle on GNU Make, which is used to build software. In GNU Make, the final target is the executable or binary for the softare. In that context, the `all` rule is like the final completed executable.
 
-`rule: all` also helps us think about the end goal of our workflow. In practice, you will usually be writing your workflow one rule at a time and updating `rule: all` each time you write a new rule in your workflow.
+`rule: all` also helps us think about the end goal of our workflow. However, in practice, you will usually be writing your workflow one rule at a time and updating `rule: all` each time you write a new rule in your workflow.
 
 For now, our workflow only has one output, so we can write that as our desired final output:
 
@@ -271,15 +270,9 @@ will be parsed by Snakemake to
 ["data/sample1.txt", "data/sample2.txt"]
 ```
 
-**Exercise:** Where do we put `expand()` functions? They are typically used in the `input` section of rules. In our simple Snakemake workflow, we only need to put the `expand()` function in one place, and you might need to edit the function slightly. Edit your `dev-02.smk` file and try to figure out where to put it and what edits need to be made. Remember that snakemake thinks backwards! 
+> **Exercise:** Where do we put `expand()` functions? They can only be used in the `input` section of rules. In our simple Snakemake workflow, we only need to put the `expand()` function in one place, and you might need to edit the function slightly. Edit your `dev-02.smk` file and try to figure out where to put it and what edits need to be made. Remember that snakemake thinks backwards! 
 
-Run `snakemake -s dev-02.smk -R clean --cores 1` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dry-run`. If that looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
-
-??? success "Solution"
-
-    See `complete/dev-02.smk`
-
-> **Exercise:** Generate the rulegraph and the DAG for `dev-02.smk`.
+> Run `snakemake -s dev-02.smk -R clean --cores 1` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dryrun`. Generate the rulegraph and the DAG for `dev-02.smk`. If everything looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
 
 ??? success "Checkpoint: `dev-02.smk`"
 
@@ -307,7 +300,7 @@ In the next few sections, we will gradually build new rules for our Snakemake wo
 
 > **Exercise**: Copy `dev-02.smk` to `dev-03.smk`. In `dev-03.smk`, try to add another rule `count_words` that counts the number of words in each input file. This should do the same thing as the shell script `shell-scripts/02_count_words.sh`. When you add the new rule, make sure to also modify the `all` rule to reflect the new workflow logic and the final product. If you are lost, consult your workflow diagram that you made earlier. Test your code with `--dryrun` and then run it for real to make sure it worked. Remember to remove the `results` directory before running the workflow again. Generate the rulegraph and DAG for `dev-03.smk`.
 
-??? success "Solution"
+??? success "Checkpoint"
 
     See `complete/dev-03.smk`, rulegraph: `complete/dev-03-rulegraph.png`, DAG: `dev-03-dag.png`
 
@@ -361,7 +354,8 @@ rule example:
 > **Exercise**: Copy `dev-03.smk` to `dev-04.smk`. Try making the necessary edits to add the rule to combine the outputs of the other two rules (as done ine `shell-scripts/03_combine_counts.sh`) now in `dev-04.smk`. You will need to replace the input for `rule all` with the summary files and add a rule `combine_counts`. Make a rulegraph and a DAG for 
 `dev-04.smk`.
 
-??? success "Solution"
+??? success "Checkpoint"
+
     See `complete/dev-04.smk`, Rulegraph: `complete/dev-04-rulegraph.png`, DAG: `dev-04-dag.png`
 
 ### Aggregation/reduction rule
@@ -503,14 +497,14 @@ for txt_file in glob.glob("data/*.txt"):
 
 ??? example "Command breakdown"
 
-    | Command line option                     | Description |
-    | --------------------------------------  | ----------- |
-    | `import glob`                                               | Imports the glob module, which provides functions for file pattern matching.                                |
-    | `import os`                                                 | Imports the os module, which provides functions for interacting with the operating system.                  |
-    | `SAMPLES = []`                                              | Initializes an empty list called `SAMPLES` to store sample names.                                           |
-    | `for txt_file in glob.glob("data/*.txt"):`                  | Uses glob to find all files in the `data` directory that match the pattern, then iterates over each file.   |
+    | Command line option                                            | Description |
+    | -------------------------------------------------------------- | ----------- |
+    | `import glob`                                                  | Imports the glob module, which provides functions for file pattern matching.                                |
+    | `import os`                                                    | Imports the os module, which provides functions for interacting with the operating system.                  |
+    | `SAMPLES = []`                                                 | Initializes an empty list called `SAMPLES` to store sample names.                                           |
+    | `for txt_file in glob.glob("data/*.txt"):`                     | Uses glob to find all files in the `data` directory that match the pattern, then iterates over each file.   |
     | `sample_name = os.path.basename(txt_file).replace(".txt", "")` | Extracts the base name of the file (removing the directory path) and removes the `.txt` extension.          |
-    | `SAMPLES.append(sample_name)`                               | Adds the extracted sample name to the `SAMPLES` list.                                                       |
+    | `SAMPLES.append(sample_name)`                                  | Adds the extracted sample name to the `SAMPLES` list.                                                       |
 
 
 Another way to glob files is to use the snakemake-specific glob function called `glob_wildcards()`. This one lets you do in one line what we did in a for loop above.
@@ -869,7 +863,7 @@ Once you have defined your rule with the container directive, you can then run s
 
 ### Exercise
 
-**Exercise:** Let's go back to our `combine_counts` rule. Imagine that your collaborator decided that they wanted to combine counts in a different way, using the program `pandas`. Also, your collaborator wants to add an option to return a CSV instead of a TSV. Thankfully, your collaborator has provided you with a python file. The python file can be found in `scripts/combine_counts.py`. Additionally, you've been given a `yaml` file for a conda environment, which can be found in `envs/combine_counts.yml`. 
+> **Exercise:** Let's go back to our `combine_counts` rule. Imagine that your collaborator decided that they wanted to combine counts in a different way, using the program `pandas`. Also, your collaborator wants to add an option to return a CSV instead of a TSV. Thankfully, your collaborator has provided you with a Python file. The Python file can be found in `scripts/combine_counts.py`. Additionally, you've been given a `yaml` file for a conda environment, which can be found in `envs/combine_counts.yml`. 
 
 As a refresher, this is the original combine_counts rule:
 
@@ -907,10 +901,6 @@ Your task is to modify the `combine_counts` rule to do the following:
 Our final topic on this section is the `logs` directive. This allows you to record log file for each individual rule. In fact, as we will see soon, it will allow you to record log files for each instance of a rule (aka each time a rule runs on a different piece of data). But first, let's discuss how to implement logging in our Snakemake workflow.
 
 The first thing we need to do is to add the directive `log` to the rule. Then we need to specify a place for the log to go. Typically, this is a folder called "logs" that you create in your project directory. 
-
-!!! warning "Important" 
-
-    The log folder needs to be manually created before you run your snakemake workflow or else the program won't be able to find the path to save the log files.
 
 ```python
 rule aggregate:
