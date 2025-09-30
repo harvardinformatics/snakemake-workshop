@@ -137,7 +137,7 @@ So to make sure SNakemake knows what the final product of your workflow is, and 
 
 Recall that Snakemake is based in principle on GNU Make, which is used to build software. In GNU Make, the final target is the executable or binary for the softare. In that context, the `all` rule is like the final completed executable.
 
-`rule: all` also helps us think about the end goal of our workflow. Though, admittedly in practice to debug workflows as you writ them it may be easier to write one rule at a time, updating `rule: all` each time you write a new rule in your workflow.
+`rule: all` also helps us think about the end goal of our workflow. In practice, you will usually be writing your workflow one rule at a time and updating `rule: all` each time you write a new rule in your workflow.
 
 For now, our workflow only has one output, so we can write that as our desired final output:
 
@@ -214,8 +214,6 @@ Reasons:
 This was a dry-run (flag -n). The order of jobs does not reflect the order of execution.
 ```
 
-<!-- explanation of the components of the dry run here -->
-
 ### Writing a `clean` rule to reset
 
 Now that we'll be actively developing the workflow, it's a good idea to have a way to reset the state between runs. We can do this by writing a `clean` rule that removes all the output files. This will ensure that we start with a clean slate each time we run the workflow. Add the following rule to your `dev-01.smk` Snakefile:
@@ -226,6 +224,10 @@ rule clean:
 ```
 
 Next time we want to run the workflow, we can first run `snakemake -s <snakefile> -R clean --cores 1`. This will remove all the output files and allow us to start fresh.
+
+??? success "Checkpoint: `dev-01.smk`"
+
+    You can catch up to here by looking at `complete/dev-01.smk`.
 
 ### Generalizing with wildcards
 
@@ -249,50 +251,39 @@ In `shell:` directives, recall that curly brackets are used to substitute inform
 
 The part of the file path that we are changing for the wildcards is the part where the filenames go `sample1`, `sample2`, etc. This is the variable part of the filename. Essentially, somewhere we have defined a pattern. As Snakemake works backwords it will encounter this rule and see that `{sample}` belongs to the input of some other rule and will fill in the values appropriately.
 
-However, just because we created a wildcard doesn't mean that Snakemake will scan your filesystem to look for files that match that pattern. The wildcards function only as a way to define the structure of the input and output file paths. In our case, we will need to provide a list of samples for Snakemake to process. 
+However, just because we created a wildcard doesn't mean that Snakemake will scan your filesystem to look for files that match that pattern. The wildcards function only as a way to define the structure of the input and output file paths. In our case, we will need to provide a list of samples for Snakemake to process. Remember, a Snakemake script is just a Python script with extra syntax. This means we can use Python code in our Snakemake script, which is especially useful for workflow setup!  
 
-!!! tip "Snakemake is based on Python
-
-    Remember, a Snakemake script is just a Python script with extra syntax. This means we can use Python code in our Snakemake script, which is especially useful for workflow setup!
+In python, you can create a list of strings - aka samples - like this:
 
 ```python
 SAMPLES = ["sample1", "sample2"]
 ```
 
-Here, we've simply created a list of our samples as strings. Next, we need to substitute the wildcards with those sample names. In Snakemake, there is a special function called `expand()` that we can use to fill in the wildcards with the actual sample names. For example, 
+Next, we need to substitute the wildcards with those sample names. In Snakemake, there is a special function called `expand()` that we can use to fill in the wildcards with the actual sample names. For example, 
 
 ```python
 expand("data/{sample}.txt", sample=['sample1', 'sample2'])
 ```
 
-becomes
+will be parsed by Snakemake to
 
 ```python
 ["data/sample1.txt", "data/sample2.txt"]
 ```
 
-Where will we put this `expand()` function? We can put it in the `input` section of rules. In our simple Snakemake workflow, we only need to put the `expand()` function in the `input` section of final `all` rule. Our `dev-02.smk` should now look like this:
-
-```python
-SAMPLES = ["sample1", "sample2"]
-
-rule all:
-    input: expand("results/{sample}.lines", sample=SAMPLES)
-
-rule count_lines:
-    input: "data/{sample}.txt"
-    output: "results/{sample}.lines"
-    shell:
-        "wc -l {input} | awk '&#123;&#123;print \$1&#125;&#125;' > {output}"
-```
+**Exercise:** Where do we put `expand()` functions? They are typically used in the `input` section of rules. In our simple Snakemake workflow, we only need to put the `expand()` function in one place, and you might need to edit the function slightly. Edit your `dev-02.smk` file and try to figure out where to put it and what edits need to be made. Remember that snakemake thinks backwards! 
 
 Run `snakemake -s dev-02.smk -R clean --cores 1` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dry-run`. If that looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
 
-> **Exercise:** Generate the rulegraph and the DAG for `dev-02.smk`.
-
 ??? success "Solution"
 
-    See `complete/dev-02-rulegraph.png` and `complete/dev-02-dag.png`.
+    See `complete/dev-02.smk`
+
+> **Exercise:** Generate the rulegraph and the DAG for `dev-02.smk`.
+
+??? success "Checkpoint: `dev-02.smk`"
+
+    You can catch up to here by looking at `complete/dev-02.smk` & related files `dev-02-rulegraph.png` and `dev-02-dag.png`.
 
 #### More advanced `expand`ing
 
@@ -318,30 +309,7 @@ In the next few sections, we will gradually build new rules for our Snakemake wo
 
 ??? success "Solution"
 
-    ```python
-    SAMPLES = ["sample1", "sample2"]
-
-    rule all:
-        input: 
-            expand("results/{sample}.{ext}", sample=SAMPLES, ext=["lines", "words"])
-
-    rule count_lines:
-        input: "data/{sample}.txt"
-        output: "results/{sample}.lines"
-        shell:
-            "wc -l {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
-
-    rule count_words:
-        input: "data/{sample}.txt"
-        output: "results/{sample}.words"
-        shell:
-            "wc -w {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
-
-    rule clean:
-        shell: "rm -r results/*"
-    ```
-
-    Rulegraph: `complete/dev-03-rulegraph.png`, DAG: `dev-03-dag.png`
+    See `complete/dev-03.smk`, rulegraph: `complete/dev-03-rulegraph.png`, DAG: `dev-03-dag.png`
 
 #### Adding a new rule 2
 
@@ -394,45 +362,7 @@ rule example:
 `dev-04.smk`.
 
 ??? success "Solution"
-
-    ```python
-    SAMPLES = ["sample1", "sample2"]
-
-    rule all:
-        input: 
-            expand("results/{sample}.summary", sample=SAMPLES)
-
-    rule count_lines:
-        input: "data/{sample}.txt"
-        output: "results/{sample}.lines"
-        shell:
-            "wc -l {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
-
-    rule count_words:
-        input: "data/{sample}.txt"
-        output: "results/{sample}.words"
-        shell:
-            "wc -w {input} | awk '&#123;&#123;print $1&#125;&#125;' > {output}"
-
-    rule combine_counts:
-        input:
-            lines="results/{sample}.lines",
-            words="results/{sample}.words"
-        output:
-            summary="results/{sample}.summary"
-        shell:
-            """
-            echo -n "lines\t" > {output.summary}
-            cat {input.lines} >> {output.summary}
-            echo -n "words\t" >> {output.summary}
-            cat {input.words} >> {output.summary}
-            """
-
-    rule clean:
-        shell: "rm -r results/*"
-    ```
-
-    Rulegraph: `complete/dev-04-rulegraph.png`, DAG: `dev-04-dag.png`
+    See `complete/dev-04.smk`, Rulegraph: `complete/dev-04-rulegraph.png`, DAG: `dev-04-dag.png`
 
 ### Aggregation/reduction rule
 
@@ -500,7 +430,7 @@ To recap:
 * One-to-one rules (like combine_counts) use wildcards to process one set of files per sample.
 * Many-to-one rules (like aggregate) use an explicit input list (from expand()), combining all files in a single rule execution.
 
-> **Exercise:** Third step: Copy `dev-04.smk` to `dev-05.smk`. Complete the `rule aggregate` and adapt the shell command. Save this has `dev-05.smk`.
+> **Exercise:** Third step: Copy `dev-04.smk` to `dev-05.smk`. Complete the `rule aggregate` and adapt the shell command. Save this as `dev-05.smk`.
 
 ??? success "Solution"
 
@@ -532,9 +462,11 @@ To recap:
             "results/aggregate-summary.tsv"
     ```
 
-    Rulegraph: `complete/dev-05-rulegraph.png`, DAG: `dev-05-dag.png`
-
 In the following sections, we will introduce some more advanced topics related to Snakemake that allow you to better customize how your workflow runs. It will be lighter on coding exercises because there is a lot to cover.
+
+??? success "Checkpoint: `dev-05.smk`"
+
+    You can catch up to here by looking at `complete/dev-05.smk`, rulegraph: `complete/dev-05-rulegraph.png`, DAG: `dev-05-dag.png`.
 
 ## Other ways to specify inputs
 
@@ -569,17 +501,32 @@ for txt_file in glob.glob("data/*.txt"):
     SAMPLES.append(sample_name)
 ```
 
+??? example "Command breakdown"
+
+    | Command line option                     | Description |
+    | --------------------------------------  | ----------- |
+    | `import glob`                                               | Imports the glob module, which provides functions for file pattern matching.                                |
+    | `import os`                                                 | Imports the os module, which provides functions for interacting with the operating system.                  |
+    | `SAMPLES = []`                                              | Initializes an empty list called `SAMPLES` to store sample names.                                           |
+    | `for txt_file in glob.glob("data/*.txt"):`                  | Uses glob to find all files in the `data` directory that match the pattern, then iterates over each file.   |
+    | `sample_name = os.path.basename(txt_file).replace(".txt", "")` | Extracts the base name of the file (removing the directory path) and removes the `.txt` extension.          |
+    | `SAMPLES.append(sample_name)`                               | Adds the extracted sample name to the `SAMPLES` list.                                                       |
+
+
 Another way to glob files is to use the snakemake-specific glob function called `glob_wildcards()`. This one lets you do in one line what we did in a for loop above.
 
 ```python
 SAMPLES = glob_wildcards("data/{sample}.txt").sample
 ```
 
-Breaking it down:
+??? example "Command breakdown"
 
-1. glob_wildcards("data/{sample}.txt") searches for all files matching the pattern in the data directory.
-2. the {sample} attribute extracts the sample names from the matched file paths.
-3. glob_wildcards("data/{sample}.txt") returns a list of all file paths, while the .sample attribute returns a list of all parts of the file paths without the extension.
+    | Command line option                     | Description |
+    | --------------------------------------  | ----------- |
+    | `glob_wildcards("data/{sample}.txt")`   | Searches for all files matching the pattern in the data directory. |
+    | `{sample}`                              | extracts the sample names from the matched file paths. |
+    
+    This returns a list of all file paths, while the `.sample` attribute returns a list of all parts of the file paths without the extension.
 
 You can use this method to generate multiple sample names from a directory of files without having to list them all explicitly. You can glob more than one thing in your filename. For example:
 
@@ -650,7 +597,7 @@ with open("samplesheet.txt", "r") as f:
 
 What this does is read the `samplesheet.txt` file line by line, strips away whitespace (`line.strip()`), and stores the result in the `SAMPLES` list. This `SAMPLES` list is identical to `["sample1", "sample2"]`, except that it was generated dynamically from the contents of the `samplesheet.txt` file.
 
-> ** Question: ** What do you think would happen if we had sample3 in our `samplesheet.txt` file? Try it out!
+> **Question:** What do you think would happen if we had sample3 in our `samplesheet.txt` file? Try it out!
 
 For more complicated samplesheets, you can use the `pandas` library to read in a CSV or other tab-delimited file. This is useful if you have a collection of metadata associated with each sample, or a column of sample names plus a column of file paths. `pandas` comes pre-installed when you install snakemake. Below is an example CSV of forward and reverse reads and how it might be parsed into a workflow:
 
@@ -785,7 +732,18 @@ param1 <- snakemake@params[["param1"]]
 some_function(snakemake@input[["data"]], param1)
 ```
 
+Under the hood, the snakemake object has all the directive information of the rule and those directives (such as `params`, `input`, `output`, etc) can be accessed with the `@` symbol and then keywords within double square brackets. 
+
 In the above, I gave my parameter the name `param1` and now I can access it by that name in the R script. You can have as many parameters as you need, separated by commas, and they can all be accessed via keyword within the script. 
+
+If instead of an R script, I had a python script, I would access the params like this:
+
+```python
+param1 = snakemake.params["param1"]
+some_function(snakemake.input[0], param1)
+```
+
+The snakemake object in python has the same structure, but you access the directives using `.` instead of `@` and single brackets for the keywords. 
 
 Often, parameters are the `-` or `--` options in command-line tools. For example, in `bwa mem`, you have the option of specifying `-t` for number of threads and `-v` for verbosity, among others. The rule might look something like this:
 
@@ -884,7 +842,7 @@ rule some_rule:
     script: "scripts/my_script.py"
 ```
 
-What this does is causes Snakemake to create a temporary conda environment based on the specifications in the `yaml` file. This environment will be activated whenever the rule is executed, ensuring that all the required dependencies are available. This environment will be cached so that any other rule that uses it or any subsequent execution of the same rule can reuse it without having to recreate it. 
+This causes Snakemake to create a temporary conda environment based on the specifications in the `yaml` file. This environment will be activated whenever the rule is executed, ensuring that all the required dependencies are available. This environment will be cached so that any other rule that uses it or any subsequent execution of the same rule can reuse it without having to recreate it. 
 
 The major benefit of using this yaml file is that it will always travel with your project so that it essentially makes the environment documented and portable. By specifying the version numbers of each software package, you can better ensure that your workflow will have consistent behavior. 
 
@@ -911,38 +869,7 @@ Once you have defined your rule with the container directive, you can then run s
 
 ### Exercise
 
-**Exercise:** Let's go back to our `combine_counts` rule. Imagine that your collaborator decided that they wanted to combine counts in a different way, using the program `pandas`. Also, your collaborator wants to add an option to return a CSV instead of a TSV. Thankfully, your collaborator has provided you with a python file. The python file is below (you can also find it in the `scripts` folder). Additionally, you've been given a `yaml` file for a conda environment `combine_counts.yml`. And following that is the skeleton of the `combine_counts` rule. 
-
-```python
-# scripts/combine_counts.py
-import pandas as pd
-
-# Access Snakemake variables directly (no command line args needed!)
-lines_file = snakemake.input.lines
-words_file = snakemake.input.words
-output_file = snakemake.output[0]
-output_format = snakemake.params.output_format
-
-# Read the count values
-with open(lines_file, 'r') as f:
-    line_count = int(f.read().strip())
-
-with open(words_file, 'r') as f:
-    word_count = int(f.read().strip())
-
-# Create DataFrame
-data = {
-    'metric': ['lines', 'words'],
-    'count': [line_count, word_count]
-}
-df = pd.DataFrame(data)
-
-# Write output
-if output_format == 'csv':
-    df.to_csv(output_file, index=False)
-else:  # tsv format
-    df.to_csv(output_file, sep='\t', index=False)
-```
+**Exercise:** Let's go back to our `combine_counts` rule. Imagine that your collaborator decided that they wanted to combine counts in a different way, using the program `pandas`. Also, your collaborator wants to add an option to return a CSV instead of a TSV. Thankfully, your collaborator has provided you with a python file. The python file can be found in `scripts/combine_counts.py`. Additionally, you've been given a `yaml` file for a conda environment, which can be found in `envs/combine_counts.yml`. 
 
 As a refresher, this is the original combine_counts rule:
 
@@ -967,34 +894,23 @@ Your task is to modify the `combine_counts` rule to do the following:
 0.  create a new snakefile called `dev-customization.smk` and copy over the contents of `dev-05.smk`. Then we will work with the `combine_counts` rule for the next items. 
 1.  modify the `shell` command to call the `combine_counts.py` script instead of using shell commands.
 2.  add a parameter called `output_format` with a default value of `tsv`.
-3.  add a conda environment specification to the `envs/combine_counts.yml` file.
+3.  add a conda environment directive that points to the `envs/combine_counts.yml` file.
 4.  add a default resource of 1 thread and 1024 MB of memory
+5.  run the workflow for real to make sure it works
 
-Solution
+??? success "Solution"
 
-```python
-rule combine_counts:
-    input:
-        lines="results/{sample}.lines",
-        words="results/{sample}.words"
-    output:
-        "results/{sample}.summary"
-    params: 
-        output_format="tsv"
-        threads: 1
-        resources:
-        mem_mb=1024
-    conda:
-        "envs/combine_counts.yml"
-    script:
-        "scripts/combine_counts.py"
-```
+    See `complete/dev-customization.smk`. 
 
 ### Logs
 
 Our final topic on this section is the `logs` directive. This allows you to record log file for each individual rule. In fact, as we will see soon, it will allow you to record log files for each instance of a rule (aka each time a rule runs on a different piece of data). But first, let's discuss how to implement logging in our Snakemake workflow.
 
-The first thing we need to do is to add the directive `log` to the rule. Then we need to specify a place for the log to go. Typically, this is a folder called "logs" that you create in your project directory. Importantly, this folder needs to be manually created before you run your snakemake workflow or else the program won't be able to find the path to save the log files. 
+The first thing we need to do is to add the directive `log` to the rule. Then we need to specify a place for the log to go. Typically, this is a folder called "logs" that you create in your project directory. 
+
+!!! warning "Important" 
+
+    The log folder needs to be manually created before you run your snakemake workflow or else the program won't be able to find the path to save the log files.
 
 ```python
 rule aggregate:
