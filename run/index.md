@@ -14,6 +14,10 @@ Welcome to today's workshop about the Snakemake workflow management software. Th
 
 If you haven't already, please follow the [Getting Started](../index.md) section to download the workshop materials and install Snakemake, as well as choose a text editor to work with on the cluster.
 
+!!! warning "Run `git pull` at the beginning of the workshop"
+
+    Because we have been making changes to the workshop content, if you have cloned the [workshop repository :octicons-link-external-24:](https://github.com/harvardinformatics/snakemake-workshop){ target="_blank" }  before today, please run `git pull` in the root directory of the repository to make sure you have the latest version of the materials. If you downloaded the materials as a zip file, please redownload the zip file and extract it again.
+
 ### Terminology
 
 Before we get started teaching any workshop, I like to point out that, like any specific domain, the way we talk about programming is almost its own language. Words in this context may have different meaning than in other contexts. As programmers ourselves, we are so used to using words in the context of programming that we sometimes forget others aren't used to it.
@@ -170,7 +174,7 @@ In our example of a phylogenomic analysis, the target would be the final `.csv` 
 
 Snakemake and other workflow languages are made up of **rules**. A rule encompasses one step of your workflow. For example, a rule for our alignment step may look something like this:
 
-```yaml
+```python
 rule mafft_align:
     input:
         "loci/locus{locus_id}.fasta"
@@ -204,7 +208,7 @@ loci/locus1453.fasta
 
 The wildcards will be determined by the pipeline inputs, but are parsed by the workflow itself. **This means its crucial to follow the file naming conventions specifed in the documentation of the workflow.**
 
-You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `locus1`, `locus2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it needs to generate. 
+You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `1`, `2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it needs to generate. 
 
 ## Preparing the config file
 
