@@ -627,28 +627,6 @@ rule process_sample:
 
 Note though that in order to propagate information about your filenames back through other rules, we are still using wildcards (`{sample}`). So while you can be less organized while using sample sheets, good file naming convensions are still crucial.
 
-### Using input functions
-
-Sometimes you may want to use more complex logic to determine the input files for a rule. When you might have a multi-line specification to define a set of files, it can be useful to encapsulate that logic in a function. Snakemake allows you to define input functions that can take wildcards as arguments and return the appropriate file paths. For example, you might want to use logic to check that a file exists before adding it to the list. In the below code, we only want to get the fasta files if both the reverse and forward reads exist:
-
-```python
-# R1_FILES & R2_FILES are dictionaries generated elsewhere, perhaps by reading a samplesheet
-
-def get_input_files(wildcards):
-    sample = wildcards.sample
-    r1 = R1_FILES.get(sample)
-    r2 = R2_FILES.get(sample)
-    if not os.path.exists(r1) or not os.path.exists(r2):
-        raise ValueError(f"No input files found for sample {sample} in R1_FILES or R2_FILES.")
-    return {"R1": r1, "R2": r2}
-
-rule process_sample:
-    input: get_input_files
-    output: "results/{sample}.lines"
-    shell:
-        "cat {input.R1} {input.R2} | wc -l > {output}"
-```
-
 ## `script`: Passing information to external scripts
 
 So far we have just used shell commands in our rules. Sometimes, we might want to use external scripts in python, R, or other languages. To do this, we can use the `script:` directive in our rules in place of `shell:`. Within python or R scripts, you can access Snakemake input, output, and other objects using the `snakemake` object that will be passed to that script's environment. For example:
@@ -959,6 +937,110 @@ rule count_lines:
 
 It is good practice to name your logs based on the rule, so that you know where it is coming from. In a more complex workflow, you can instead have directories for each rule's logs. Just make sure to create those directories first (perhaps write a rule or add python code to your snakefile to create all log directories!).
 
-## Checkpointing
+## Getting values from a config file
+
+---
+
+## Beyond One-to-One: Aggregating, Splitting, and Filtering Rules
+
+Many Snakemake rules take one or many input files and produce the same number of output files. These are one-to-one rules, for example our `count_lines` rule:
+
+```python 
+rule count_lines:
+    input: "data/{sample}.txt"
+    output: "results/{sample}.lines"
+    shell:
+        "wc -l {input} | awk '{{print $1}}' > {output}"
+```
+
+This rule takes as many `.txt` files as samples we have and produces the same number of `.lines` files. This is accomplished simply by having the same wildcard(s) in the `input` and `output` sections, in this case `{sample}`.
+
+### Aggregation: many-to-one
+
+We've also already covered combining multiple input files to a single output file, or aggregation, in our `aggregate` rule:
+
+```python 
+rule aggregate:
+    input: expand("results/{sample}.summary", sample = SAMPLES)
+    output: "results/combined.summary"
+```
+
+Here, we're using the `expand()` function to define many input files in the `input` section, all of which are used in our `shell` command, which produces a single output file. Here, the wildcard `{sample}` is defined in the `input` section, but not used in the `output` section. The `{sample}` wildcard is also propagated back to the previous rule(s) to be used in their `input` and `output` sections.
+
+### Filtering: many-to-fewer
+
+A very common scenario in data analysis is a filtering step, where because of some quality metric or heuristic or experimental requirement, the number of output files is fewer than the number of input files in a rule. This is complicated for Snakemake, because the whole philosophy of it is that you know the expected outputs ahead of time. But when filtering, you often do not know which samples will pass your filtering thresholds. 
+
+Fortunately, it is possible, but requires us to introduce two slightly more advanced concepts: **input functions** and **checkpoints**.
+
+### Input functions
+
+Up until know, we've been specifying our `input` sections only as a hardcoded individual files (as in `rule all`), which Snakemake uses as a list of length 1, or as a list or lists of files defined by wildcards. However, we always want to re-iterate that a Snakemake script is at its core a Python script, so we can do Python things like write functions. Sometimes you may want to use more complex logic to determine the input files for a rule. In these cases, you could *write a function that returns a list of files* that can be used in the `input` section of a rule. These are called **input functions** and are a common way to generate lists of input files.
+
+For example, in our rule `aggregate` we define our list of input files based on the samples stored in the `SAMPLES` list, with `{sample}` becoming our wildcard:
+
+```python
+rule aggregate:
+    input:
+        expand("results/{sample}.summary", sample = SAMPLES)
+```
+
+Since this is just one line of code, we can just stick this in the `input` section. But if we really wanted to, we could instead put this in an input function:
+
+```python
+def get_aggregate_input(wildcards):
+    my_samples = expand("results/{sample}.summary", sample = SAMPLES)
+    return my_samples
+
+rule aggregate:
+    input:
+        get_aggregate_input
+```
+
+Now, in our `input` section, instead of the `expand()` function directly, we have a call to our function, `get_aggregate_input`.
+
+> **Question:** What do you notice that's different about this function call compared to other Python function calls?
+
+??? success "Answer"
+
+    Here, there are no trailing parentheses, `()`, which are usually required after a function call in Python. This is because we are not directly calling the function, but rather telling Snakemake to call the function for us. Relatedly, you'll also notice that in our function definition, one argument, `wildcards`, is required. This is automatically passed to the function by Snakemake and so it **must** be included as an argument in all input function definitions. The `wildcards` object in the function is then a class object with which we can access our defined wildcards, as you'll see below.
+
+    !!! tip
+
+        However, you can still pass other arguments to the input function! In this case, you *would* add the parentheses, *e.g.* `get_aggregate_input(my_arg1, my_arg2)`. However, it must be understood that the **first** argument received by the function will **always be `wildcards`**. Then, the function definition must be `def get_aggregate_input(wildcards, my_arg1, my_arg2)`. So, even though you've only passed it two arguments, it will receive three and must be written as such.
+
+#### The `wildcards` argument
+
+As mentioned in the answer above, the `wildcards` argument is **always** passed by Snakemake to the input functions, so your input functions must be defined to accept it. However, in our example above, we didn't actually use it (because at that point in our workflow we didn't have any wildcards defined yet). To use it, you can access the current value of a given wildcard by typing `wildcards.<wildcard name>`. So, for example, if we made an input function for the `count_lines` rule, we may do something like this:
+
+```python
+def get_count_lines_input(wildcards):
+    current_sample = wildcards.sample
+    current_file = f"data/{current_sample}.txt"
+    return current_file
+
+rule count_lines:
+    input: get_count_lines_input
+```
+
+The rest of the rule remains unchanged.
+
+Here, the input function `get_count_lines_input` is called each time the rule is invoked for a different wildcard (`{sample}`), and `wildcards.sample` returns the value of the current sample, either `sample1` or `sample2` in our small example.
+
+> **Exercise:** Copy the contents of `dev-05.smk` to `dev-06.smk`. Modify `dev-06.smk` so that the rule `combine_counts` takes a single input function in the `input` section. Because of the way `input` directives expect files to be returned from and input function (as a list), you will also need to modify the shell command.
+
+??? question "Hint"
+
+    Recall that the `input` object that Snakemake receives is also a list of files. In the case of rules that have just a single input file (*e.g.* `count_lines` and `count_words`), this is a list of length 1. For `combine_counts` this is a list of two files, a `.words` file and a `.lines` file. Since the easiest thing is to return a list from our input function and because we access them by name in the `shell` directive, we'll have to modify the command to use list indices rather than names.
+
+    Alternatively, our input function *could* return a dictionary, and we could keep using named inputs in the `shell` directive, if we wrap our input function call in `unpack()`.
+
+??? success "Solution"
+
+    See `complete/dev-06.smk`
+
+### Checkpointing
+
+A rule *can be converted into a checkpoint* if you don't know exactly the files that will be output from it. This is especially helpful in our scenario of filtering samples from a dataset.
 
 <!-- aggregate/merge vs. filter vs. split -->
