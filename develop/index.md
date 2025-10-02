@@ -973,7 +973,7 @@ A very common scenario in data analysis is a filtering step, where because of so
 
 Fortunately, it is possible, but requires us to introduce two slightly more advanced concepts: **input functions** and **checkpoints**.
 
-### Input functions
+#### Input functions
 
 Up until know, we've been specifying our `input` sections only as a hardcoded individual files (as in `rule all`), which Snakemake uses as a list of length 1, or as a list or lists of files defined by wildcards. However, we always want to re-iterate that a Snakemake script is at its core a Python script, so we can do Python things like write functions. Sometimes you may want to use more complex logic to determine the input files for a rule. In these cases, you could *write a function that returns a list of files* that can be used in the `input` section of a rule. These are called **input functions** and are a common way to generate lists of input files.
 
@@ -1009,7 +1009,7 @@ Now, in our `input` section, instead of the `expand()` function directly, we hav
 
         However, you can still pass other arguments to the input function! In this case, you *would* add the parentheses, *e.g.* `get_aggregate_input(my_arg1, my_arg2)`. However, it must be understood that the **first** argument received by the function will **always be `wildcards`**. Then, the function definition must be `def get_aggregate_input(wildcards, my_arg1, my_arg2)`. So, even though you've only passed it two arguments, it will receive three and must be written as such.
 
-#### The `wildcards` argument
+##### The `wildcards` argument
 
 As mentioned in the answer above, the `wildcards` argument is **always** passed by Snakemake to the input functions, so your input functions must be defined to accept it. However, in our example above, we didn't actually use it (because at that point in our workflow we didn't have any wildcards defined yet). To use it, you can access the current value of a given wildcard by typing `wildcards.<wildcard name>`. So, for example, if we made an input function for the `count_lines` rule, we may do something like this:
 
@@ -1039,8 +1039,256 @@ Here, the input function `get_count_lines_input` is called each time the rule is
 
     See `complete/dev-06.smk`
 
-### Checkpointing
+#### Checkpointing
 
-A rule *can be converted into a checkpoint* if you don't know exactly the files that will be output from it. This is especially helpful in our scenario of filtering samples from a dataset.
+A rule *can be converted into a checkpoint* if you don't know exactly the files that will be output from it. This is especially helpful in our scenario of filtering samples from a dataset. However, checkpoints can be complicated.
+
+> **Activity:** Take a look at `complete/checkpoint-01.smk`.
+
+This is the same workflow as our initial `dev-05.smk`. It takes text files, counts the number of lines and words in them, combines those counts by within sample, then aggregates the counts across samples so we get a single output file, `aggregate-summary.csv`.
+
+Except, now we've inserted a checkpoint `perform_qc`:
+
+```python
+checkpoint perform_qc:
+    input:
+        expand("results/{sample}.summary", sample = SAMPLES)
+    output:
+        "results/qc-manifest.txt"
+    run:
+        with open(output[0], "w") as manifest:
+            for input_file in input:
+                sample_name = input_file.split("/")[-1].replace(".summary", "")
+
+                second_line = open(input_file).readlines()[1].strip()
+                num_words = int(second_line.split("\t")[1])
+                print("NUM WORDS:", num_words)
+                if num_words <= 7:
+                    manifest.write(f"{sample_name}\n")
+```
+
+This checkpoint acts as a rule, and we use a `run:` directive to directly run Python code within the Snakemake script. The `run` directive looks at all the `.summary` files output by `combine_counts` and writes a **manifest** file that will contain the names of the samples that pass our filtering rules. In this case, our filtering logic is simple: only samples with 7 lines or fewer will be written to the manifest file.
+
+This checkpoint is paired with an **input function** in the next rule, `get_aggregate_input`:
+
+```python
+def get_aggregate_input(wildcards):
+    manifest = checkpoints.perform_qc.get().output[0] # Wait for checkpoint and get output path
+    with open(manifest) as mf:
+        samples = [line.strip() for line in mf if line.strip()]
+    return [f"results/{sample}.summary" for sample in samples]
+```
+
+This key line here uses `checkpoints` method to get the output from our `perform_qc` checkpoint:
+
+```python
+manifest = checkpoints.perform_qc.get().output[0]
+```
+
+This means that when Snakemake looks backwards from rule `aggregate`, it will know it first has to generate the output from `perform_qc`. Then we have some logic that opens that manifest files, reads the samples and compiles the expected inputs **after filtering**.
+
+> **Exercise:** Do a dryrun and generate a rulegraph and DAG for this workflow. Note: be sure to move or remove any old outputs or else nothing will happen!
+
+```bash
+
+# The dryrun:
+snakemake -j 1 -s complete/checkpoint-01.smk --dryrun
+
+# Create rulegraph:
+snakemake -j 1 -s complete/checkpoint-01.smk --rulegraph | dot -Tpng > checkpoint-01-rulegraph.png
+
+# Create DAG
+snakemake -j 1 -s complete/checkpoint-01.smk --dag | dot -Tpng > checkpoint-01-dag.png
+
+```
+
+What do you notice about the outputs of these commands?
+
+??? success "One answer"
+
+    The rulegraph is basically the same as `dev-05.smk`, just with the addition of the `perform_qc` checkpoint.
+
+> **Exercise:** Run the workflow. What do you notice about the final output that is different than before? Note: be sure to move or remove any old outputs or else nothing will happen!
+
+This checkpoint is relatively easy to understand because the filtering is done right before a step that aggregates the outputs. In other words, the checkpoint and rule requiring the input function are adjacent steps. However, things can seem more complicated with intervening rules.
+
+#### Filtering without aggregating
+
+We can filter without immediately aggregating as well, using wildcards both before and after the filter step.
+
+> **Activity:** Take a look at `complete/checkpoint-02.smk`.
+
+Here, we've moved the `perform_qc` checkpoint to work before the `combine_counts` rule instead of after it. Now it accepts as input the `.lines` and `.words` files and `combine_counts` now also accepts the manifest file as input. The filtering logic remains the same, as does the input function to `aggregate`.
+
+> **Exercise:** Do a dryrun and generate a rulegraph and DAG for this workflow. Note: be sure to move or remove any old outputs or else nothing will happen!
+
+```bash
+
+# The dryrun:
+snakemake -j 1 -s complete/checkpoint-02.smk --dryrun
+
+# Create rulegraph:
+snakemake -j 1 -s complete/checkpoint-02.smk --rulegraph | dot -Tpng > checkpoint-02-rulegraph.png
+
+# Create DAG
+snakemake -j 1 -s complete/checkpoint-02.smk --dag | dot -Tpng > checkpoint-02-dag.png
+
+```
+
+What do you notice about the outputs of these commands?
+
+??? success "Some answers"
+
+    - In the dryrun, `combine_counts` doesn't show up!
+    - In the dryrun, the text "DAG of jobs will be updated after completion." is displayed after the `perform_qc` checkpoint.
+    - `combine_counts` doesn't appear in either the rulegraph or the DAG!
+
+This because Snakemake can't determine exactly what the inputs to `combine_counts` will be until the other rules are run, so it can't report anything about it.
+
+Also note that we use `expand()` in the `perform_qc` rule to define the wildcards before filtering, which are propagated back to `count_lines` and `count_words`. However, we also use `{sample}` in `combine_counts`. The list of wildcards after filtering are defined in the input function `get_aggregate_input` and propogated backwards *after* the checkpoint is run. Unfortunately, you can't change the name of the wildcard after filtering, which would aid in clarity...
+
+> **Optional**: You can run this workflow if you want! Since we didn't change the filtering logic, the output should be the same as `complete/checkpoint-01.smk`
 
 <!-- aggregate/merge vs. filter vs. split -->
+
+### Splitting: one-to-many
+
+Splitting one file into many for processing of parts can be a a great way to speed up a workflow. Whether it is straightforward or not depends on whether or not you know the splits beforehand or not.
+
+#### Deterministic splitting
+
+If you have a list of the splits you want to make beforehand (say, splitting a genome up by chromosomes), then splitting is similar to aggregating, but in reverse (`complete/split-01.smk`):
+
+```python
+SPLITS = ["apple", "cherry", "dragonfruit"]
+
+rule all:
+    input:
+        expand("split/{part}.txt", part=SPLITS)
+
+rule split_file:
+    input:
+        "complete/split-data.txt"
+    output:
+        expand("split/{part}.txt", part=SPLITS)
+    run:
+        # Read full file contents:
+        for line in open(input[0]):
+            data = line.strip()
+            if data in SPLITS:
+                with open(f"split/{data}.txt", "w") as out:
+                    out.write(data + "\n")
+```
+
+The input file, `complete/split-data.txt`, looks like this:
+
+```
+apple
+banana
+cherry
+dragonfruit
+```
+
+This is a very simple workflow, that writes lines from an input file if they appear in our pre-defined lies: `SPLITS = ["apple", "cherry", "dragonfruit"]`.
+
+??? info "Could we split in parallel?"
+
+    The way we've written this rule we expect it to be run once and the code accommodates this: in the `run` block, we search the whole input file and the whole `SPLITS` list. This is also accomplished by using `expand()` in the `output` directive, meaning the output is one big list of files rather than one file depending on a wildcard.
+    
+    However, we could imagine another way to write this in which the rule is run once per element in `SPLITS`. In that case, we'd have to change the logic in our `run` block and also use wildcards in `output`. However, the trade-off would be that we'd be opening and reading the file for each part we want to split. This is very slow, especially for large files. So be mindful of this when you write your rules.
+
+#### Non-deterministic splitting
+
+Splitting when you don't know the splits beforehand (say, splitting based on Ns in a genome, or a general pipeline for a new genome that you don't have a list of chromosomes for beforehand) is more complex and done similarly to filtering: with a **checkpoint** and an **input function**. Here is a small example (`complete/split-02.smk`):
+
+```python
+# Input function to discover splits.
+def get_split_outputs(wildcards):
+    manifest = checkpoints.split.get().output[1]
+    with open(manifest) as f:
+        splits = [line.strip() for line in f if line.strip()]
+    return [f"splits/{split}.txt" for split in splits]
+
+rule all:
+    input: get_split_outputs
+
+# Checkpoint splits the file and writes a manifest.
+checkpoint split:
+    input:
+        "complete/split-02-data.txt"
+    output:
+        directory("splits"),
+        "manifest/splits.txt"
+    run:
+        import os
+
+        os.makedirs("splits", exist_ok=True)
+        splits = []
+        with open(input[0]) as infile:
+            lines = [line.strip() for line in infile if line.strip()]
+            for l in lines:
+                outfile = f"splits/{l}.txt"
+                with open(outfile, "w") as out:
+                    out.write(l + "\n")
+                splits.append(l)
+        os.makedirs("manifest", exist_ok=True)
+        with open(output[1], "w") as mf:
+            for s in splits:
+                mf.write(s + "\n")
+```
+
+This does the same as the previous example, but instead of being provided a list of splits (`SPLITS = ["apple", "cherry", "dragonfruit"]`) we want a general rule that gets every line in the file, even if we don't know the file's contents. This means, like filtering, we won't know the outputs of our splittin until it is run, hence the need for the checkpoint and input function.
+
+## End Part 2
+
+Let us know if you have any questions!
+
+<!-- --------------------------------- -->
+<!-- Page specfic CSS -->
+
+<style>
+    /* ----- */
+    /* Pop-up image viewer */    
+    .backdrop {
+        display: none;
+        position: fixed; top:0; left:0; width:100vw; height:100vh;
+        background: rgba(0,0,0,0.5);
+        z-index: 10;
+        text-align: center;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+    }
+    #popup:not(:checked) ~ .backdrop {
+        display: none;
+    }
+    #popup:checked ~ .backdrop {
+        display: flex;
+    }
+    .fullimg {
+        max-width: 100vw;
+        max-height: 100vh;
+        margin: 0;
+        display: block;
+        background-color: #fff;
+    }
+    .caption {
+        color: #aaa;
+        font-style: italic;
+        font-size: 1.1em;
+        margin-bottom: 8px;
+        text-align: center;
+        letter-spacing: 0.02em;
+    }    
+
+    /* ----- */
+    /* Hide all 2nd-level navs */
+    .md-nav--secondary .md-nav__item .md-nav {
+        display: none !important;
+    }
+
+    /* Show when parent has .expanded class, which is added by js/collapse_toc.js */
+    .md-nav--secondary .md-nav__item.expanded > .md-nav {
+        display: block !important;
+    }    
+</style>
