@@ -838,7 +838,6 @@ Once you have defined your rule with the container directive, you can then run s
 !!! Tip
     In case you don't want to remember to run snakemake with the `--sdm conda singularity` option every time, you can create a configuration file (e.g., `config.yaml`) and specify the default software deployment method there. We will cover config files in more detail later.
 
-
 ### Exercise
 
 > **Exercise:** Let's go back to our `combine_counts` rule. Imagine that your collaborator decided that they wanted to combine counts in a different way, using the program `pandas`. Also, your collaborator wants to add an option to return a CSV instead of a TSV. Thankfully, your collaborator has provided you with a Python file. The Python file can be found in `scripts/combine_counts.py`. Additionally, you've been given a `yaml` file for a conda environment, which can be found in `envs/combine_counts.yml`. 
@@ -938,6 +937,44 @@ rule count_lines:
 It is good practice to name your logs based on the rule, so that you know where it is coming from. In a more complex workflow, you can instead have directories for each rule's logs. Just make sure to create those directories first (perhaps write a rule or add python code to your snakefile to create all log directories!).
 
 ## Getting values from a config file
+
+The final basic Snakemake topic we'll cover is about using a config file to store parameters and other values that you want to use in your workflow. This is useful for keeping your workflow modular and easy to modify. A config file is typically a `yaml` file that contains key-value pairs, where the key is the name of the parameter you use in your workflow. For example, if in my config file I have a key : value pair such as `input_dir: data/`, then I can access that value in my snakefile using the dictionary lookup `config["input_dir"]`. The `config` object is a built-in dictionary that Snakemake automatically creates when you provide a config file.
+
+Config values can be accessed anywhere in the snakefile, including in rules, input functions, the `params` directive, or even before any rules during any sort of pre-processing. For keys with individual values, the values are read as strings, so if you want to use them as integers or floats, you will need to convert them.
+
+Config values can also contain lists. This can be done with Python syntax as `my_list: [item1, item2, item3]` or with YAML syntax as:
+
+```yaml
+my_list:
+    - item1
+    - item2
+    - item3
+```
+
+Likewise, config values can contain dictionaries, which can be nested. For example:
+
+```yaml
+my_dict:
+    key1: value1
+    key2: value2
+    key3:
+        nested_key1: nested_value1
+        nested_key2: nested_value2
+```
+
+These would be read by the Snakemake script as regular Python data structures, so you would access the list as `config["my_list"]` and the dictionary as `config["my_dict"]["key1"]` or `config["my_dict"]["key3"]["nested_key1"]`.
+
+> **Exercise**: Copy the contents of `dev-05.smk` to a new file called `dev-config.smk`. Then, create a config file called `dev-config.yaml` in the same directory. Modify the Snakemake script and config file so that the following values are stored in the config file and accessed in the Snakemake script: `sample_list`, `input_dir`, and `output_dir`. Then assign the values in the config file, changing the output directory if desired. Make sure the workflow still runs correctly with either a dryrun or a full run. Recall that to run Snakemake with a config file, you need to provide the `--configfile` option in the command line.
+
+??? tip "Tip"
+
+    While you can replace every instance of a hardcoded value with a config look-up (*e.g.* `config["input_dir"]`), it is often easier to first assign the config values to variables at the top of your snakefile, as we have done with the `SAMPLES` list. This may require other changes to how directories are defined in the context of wildcards (*e.g.* `input: INPUT_DIR + "/{sample}.txt"` instead of `input: "data/{sample}.txt"`, or some other method of joining strings that doesn't interfere with the wildcards).
+
+??? success "Solution"
+
+    See `complete/dev-config.smk` and `complete/config.yaml`.
+
+Now you are ready to share your workflow with collaborators so they can replicate your analysis, or use it on their own data. Just be sure to provide a [config template](https://github.com/harvardinformatics/cactus-snakemake/blob/main/config-templates/config-template.yaml)!
 
 ---
 
@@ -1189,7 +1226,7 @@ cherry
 dragonfruit
 ```
 
-This is a very simple workflow, that writes lines from an input file if they appear in our pre-defined lies: `SPLITS = ["apple", "cherry", "dragonfruit"]`.
+This is a very simple workflow, that writes lines from an input file if they appear in our pre-defined list: `SPLITS = ["apple", "cherry", "dragonfruit"]`.
 
 ??? info "Could we split in parallel?"
 

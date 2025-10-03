@@ -1,0 +1,7 @@
+sample_list:
+  - sample1
+  - sample2
+
+input_dir: "data"
+
+output_dir: "results-with-config"
