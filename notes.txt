@@ -1,0 +1,1 @@
+- need a section during run that explains --cores vs -j
