@@ -32,15 +32,17 @@ A classic example of a workflow that would NOT be worth converting into a Snakem
 
 ## Converting shell scripts to Snakemake
 
-### Drawing the input-output of your workflow
+### Drawing your own rulegraph
 
-Read through the shell script files in the `shell-scripts` directory. These scripts take a set of text files in the `data` directory, count the number of lines and words in each file, and then combine those counts into a summary file for each input file.
+Planning ahead is important when writing a Snakemake workflow. Before you start writing any code, you should understand the relationships between the different steps in your workflow. One way to do this is to visualize the rulegraph of your workflow manually.
 
-Draw a diagram of the input-output relationships of these scripts. For example, you might draw something like this:
+> **Exercise:** Read through the shell script files in the `shell-scripts` directory. These scripts take a set of text files in the `data` directory, count the number of lines and words in each file, and then combine those counts into a summary file for each input file. Draw a diagram of the input-output relationships of these scripts. For example, you might draw something like this:
 
 ```
 data/sample1.txt  -->  count_lines.sh  -->  results/sample1.lines
 ```
+
+> Or it may be easier to draw on paper.
 
 ### Writing the first Snakemake rule
 
@@ -61,7 +63,7 @@ Note that the colon is required syntax.
 
 In Python, these are referred to as **blocks of code**. In Snakemake, we simply call these **sections** or **specifications**, because these aren't necessarily doing any computations, but rather compiling information to perform tasks.
 
-After you've named your rule, you need to give the rule information through **directives**. The required directives for a Snakemake rule are **input**, **output**, and a directive to run a command, either **shell**, **run**, or **script**. There are other directives that allow us to control many other aspects of the command to be run and we'll talk about those later on, but to start we'll focus on these three tasks.
+After you've named your rule, you need to give the rule information through **directives**. The basic directives for a Snakemake rule are **input**, **output**, and a directive to run a command, either **shell**, **run**, or **script**. There are other directives that allow us to control many other aspects of the command to be run and we'll talk about those later on, but to start we'll focus on these three tasks.
 
 #### Input specification
 
@@ -276,7 +278,7 @@ will be parsed by Snakemake to
 ["data/sample1.txt", "data/sample2.txt"]
 ```
 
-> **Exercise:** Where do we put `expand()` functions? They can only be used in the `input` section of rules. In our simple Snakemake workflow, we only need to put the `expand()` function in one place, and you might need to edit the function slightly. Edit your `dev-02.smk` file and try to figure out where to put it and what edits need to be made. Remember that snakemake thinks backwards! 
+> **Exercise:** Where do we put `expand()` functions? They are almost always used in the `input` section of rules, with the wildcards propagating backwards through the rules. In our simple Snakemake workflow, we only need to put the `expand()` function in one place, and you might need to edit the function slightly. Edit your `dev-02.smk` file and try to figure out where to put it and what edits need to be made. Remember that snakemake thinks backwards! 
 
 > Run `snakemake -s dev-02.smk -R clean --cores 1` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dryrun`. Generate the rulegraph and the DAG for `dev-02.smk`. If everything looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
 
