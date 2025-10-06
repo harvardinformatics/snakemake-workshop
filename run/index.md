@@ -14,6 +14,10 @@ Welcome to today's workshop about the Snakemake workflow management software. Th
 
 If you haven't already, please follow the [Getting Started](../index.md) section to download the workshop materials and install Snakemake, as well as choose a text editor to work with on the cluster.
 
+!!! warning "Run `git pull` at the beginning of the workshop"
+
+    Because we have been making changes to the workshop content, if you have cloned the [workshop repository :octicons-link-external-24:](https://github.com/harvardinformatics/snakemake-workshop){ target="_blank" }  before today, please run `git pull` in the root directory of the repository to make sure you have the latest version of the materials. If you downloaded the materials as a zip file, please redownload the zip file and extract it again.
+
 ### Terminology
 
 Before we get started teaching any workshop, I like to point out that, like any specific domain, the way we talk about programming is almost its own language. Words in this context may have different meaning than in other contexts. As programmers ourselves, we are so used to using words in the context of programming that we sometimes forget others aren't used to it.
@@ -83,7 +87,7 @@ There are two problems with this approach:
 
 ### Job arrays
 
-**Job arrays** can help with the parallelization problem. A job array is a feature of most modern **job schedulers** that are installed on institutional clusters. A job scheduler is a a program that handles user requests for resources and allocates compute nodes based on resources available. On the Cannon cluster at Harvard, we use the [SLURM :octicons-link-external-24:](https://slurm.schedmd.com/overview.html){ target="_blank" } job scheduler.
+**Job arrays** can help with the parallelization problem. A job array is a feature of most modern **job schedulers** that are installed on institutional clusters. A job scheduler is a program that handles user requests for resources and allocates compute nodes based on resources available. On the Cannon cluster at Harvard, we use the [SLURM :octicons-link-external-24:](https://slurm.schedmd.com/overview.html){ target="_blank" } job scheduler.
 
 In a typical SLURM job, you would write a SLURM script to submit a request to run some command on a compute node:
 
@@ -170,7 +174,7 @@ In our example of a phylogenomic analysis, the target would be the final `.csv` 
 
 Snakemake and other workflow languages are made up of **rules**. A rule encompasses one step of your workflow. For example, a rule for our alignment step may look something like this:
 
-```yaml
+```python
 rule mafft_align:
     input:
         "loci/locus{locus_id}.fasta"
@@ -204,7 +208,7 @@ loci/locus1453.fasta
 
 The wildcards will be determined by the pipeline inputs, but are parsed by the workflow itself. **This means its crucial to follow the file naming conventions specifed in the documentation of the workflow.**
 
-You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `locus1`, `locus2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it needs to generate. 
+You may already have run into naming conventions in your own scripts which help you understand where a file came from, what sample number it is, and what steps in the analysis it has been through. For example, in the demo rule graph, we start with fasta files, so files may be named `locus1.fasta`, `locus2.fasta`, etc. Subsequent steps might have the output files be named `locus1_aligned.fasta`, `locus2_aligned.fasta`, etc. Wildcards take the part of the file name that is variable and substitutes it in the rule. In the `mafft_align` rule above, the `{locus_id}` will be replaced with the actual locus ID, such as `1`, `2`, etc. Under the hood, Snakemake will create a list of all potential inputs and outputs for each rule using these wildcards so it knows exactly what files to look for and what files it needs to generate. 
 
 ## Preparing the config file
 
@@ -248,7 +252,7 @@ Let's say we found the following documentation for this workflow:
 
     **Workflow inputs**
 
-    This workflow requires a sample sheet that lists one sample per line. Samples must be the basenames of the input files (*e.g.* for file `sample12.txt` the corresponding line in the sample sheet should read `sample12`). You can name this sample sheet file anything you want.
+    This workflow requires a sample sheet that lists one sample per line. Samples must be the basenames of the input files (*e.g.* for file `sample12.txt` the corresponding line in the sample sheet should be `sample12`). You can name this sample sheet file anything you want.
 
     **Workflow config file**
     
@@ -509,16 +513,16 @@ KeyError in file "/n/holylfs05/LABS/informatics/Lab/training/snakemake-workshop/
 
 ??? success "Solution"
 
-    The problem is that the config file spelled "sample_sheet" wrong. It's spelling "sample_hseet". Fixing that typo should allow the dryrun to complete successfully.
+    The problem is that the config file spelled "sample_sheet" wrong. It's spelled as "sample_hseet". Fixing that typo should allow the dryrun to complete successfully.
 
 #### `FileNotFoundError`
 
-This is a pretty generic error that could happen for a lot of reasons. Fortunately, there is usually more context involved in that it will usually list the file that it can't find.
+This is a pretty generic error that could happen for a lot of reasons. Fortunately, there is usually more context as it will usually list the file that it can't find.
 
 > **Exercise:** Run the following command to see a `FileNotFoundError`. Fix the problem and re-run so the dryrun completes successfully:
 
 ```bash
-snakemake -j 1 -s demo.smk --configfile complete/demo-config1.yml --dryrun
+snakemake -j 1 -s demo.smk --configfile debugging-demos/demo-config1.yml --dryrun
 ```
 
 ??? example "Command breakdown"
@@ -615,9 +619,9 @@ This alone, however, isn't that helpful for large workflows since it is limited 
 
 ### Executor plugins
 
-Snakemake integrates with job schedulers by using a set of **plugins**. These plugins are just additional software packages. See the list of plugins in the [Snakemake plugin catalogue :octicons-link-external-24:](https://snakemake.github.io/snakemake-plugin-catalog/index.html){:target="_blank"}. Here, you'll notice a series of **executor** plugins, which are used specifically to run jobs on specific job schedulers.
+Snakemake integrates with job schedulers by using a set of **plugins**. These plugins are just additional software packages. See the list of plugins in the [Snakemake plugin catalog :octicons-link-external-24:](https://snakemake.github.io/snakemake-plugin-catalog/index.html){:target="_blank"}. Here, you'll notice a series of **executor** plugins, which are used specifically to run jobs on specific job schedulers.
 
-> **Exercise:** Find the **slurm executor** plugin on the plugin catalogue page and read the documentation to find out how to install it, then install it in your environment. Run the following to make sure it is installed:
+> **Exercise:** Find the **slurm executor** plugin on the plugin catalog page and read the documentation to find out how to install it, then install it in your environment. Run the following to make sure it is installed:
 
 ```bash
 snakemake -e slurm -j 1 -s demo.smk --configfile complete/demo-config.yml --dryrun
@@ -636,7 +640,7 @@ snakemake -e slurm -j 1 -s demo.smk --configfile complete/demo-config.yml --dryr
 
 If you get an error, then there was likely a problem with the plugin installation and you should ask us about it. Otherwise, the dryrun should complete normally.
 
-Note the  `-e slurm` option. This tells Snakemake we'd like to use the SLURM executor plugin for submitting jobs to a SLURM cluster. Now, instead of running tasks locally (or on the login node to which you are connected), each task will be submitted as a SLURM job!
+Note the `-e slurm` option. This tells Snakemake we'd like to use the SLURM executor plugin for submitting jobs to a SLURM cluster. Now, instead of running tasks locally (or on the login node to which you are connected), each task will be submitted as a SLURM job!
 
 ### Resources
 
@@ -697,7 +701,7 @@ snakemake -e slurm -j 5 -s demo.smk --configfile complete/demo-config.yml --work
 
 Note here the `--workflow-profile` option gives the **path to the directory containing the config.yaml file** where your resources are specified. We've also included `-e slurm` and increased `-j` to `5`, meaning that at most 5 jobs will be submitted to the cluster simultaneously.
 
-> **Exercise:** Edit the workflow profile config file in `complete/demo-profile/config.yaml` to specify the following resources for the rule `count_words:`: 512MB of memory, 7 minute run time, 1 CPU, and the "shared" partition. Re-run the workflow if desired.
+> **Exercise:** Edit the workflow profile config file in our demo profile, `demo-profile/config.yaml`, to specify the following resources for the rule `count_words:`: 512MB of memory, 7 minute run time, 1 CPU, and the "shared" partition. Re-run the workflow if desired.
 
 ??? success "Solution"
 
@@ -761,6 +765,8 @@ Think of the workflow profile as the config for Snakemake itself, specifying pro
 ## End Part 1
 
 Let us know if you have any questions and be sure to attend part 2, Develop, where we'll learn how to actually write a Snakemake pipeline!
+
+---
 
 <!-- --------------------------------- -->
 <!-- Page specfic CSS -->

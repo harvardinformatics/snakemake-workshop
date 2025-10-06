@@ -777,11 +777,24 @@ These resources will be used locally or on a per-job basis if submitted to the c
 
 To learn more about the resources directive, see the [snakemake docs :octicons-link-external-24:](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#resources){:target="_blank"}.
 
+#### Cluster resources
+
+When implementing your pipeline to work with a **cluster executor**, there may be additional resources you can specify. For the [SLURM executor](https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html#slurm-specific-resources), they include things like `slurm_partition`, and `nodes`. Many of these won't be necessary for simple pipelines, but you should be aware they exist. Besides `slurm_partition`, you will still mainly use the `threads:` directive to specify CPUs and the other default resource options discussed above.
+
 ### Software
 
 Another important component of a workflow is software dependencies. So far, we have been using basic bash or python code (or pseudocode), but in practice, we will be using specific software tools and libraries. One of the benefits of workflow managers is that you can specify a totally separate software environment for each rule, including different versions of software or even different programming languages. This allows you to keep your rules modular and contained so that they can be easily reused or modified without affecting other parts of the workflow.
 
-In Snakemake, you can specify what software to use for the rule using either the `conda` directive or the `container` directive.
+If you already have a tool installed in your environment (*i.e.* you can type `<tool_name>` and not get an error), then you can simply use that tool in the `shell:` directive. For example, knowing that `mafft` is already installed, you might have a rule that looks like this:
+
+```python
+rule mafft_aln:
+    input: {locus_id}.fa
+    output: {locus_id}.aln
+    shell: "mafft {input} > {output}"
+```
+
+However, in Snakemake, you can also specify what software *environment* to use for the rule using, either the `conda` directive or the `container` directive. This precludes the user from necessarily installing the software themselves, rather they only need to have the environment specifications, which you can easily provide.
 
 #### Conda
 
@@ -794,6 +807,8 @@ rule some_rule:
     conda: "my_env_name"
     script: "scripts/my_script.R"
 ```
+
+Or using the full path to the environment's folder:
 
 ```python
 rule some_rule:
@@ -847,8 +862,7 @@ rule mafft:
 
 Once you have defined your rule with the container directive, you can then run snakemake with the option `--sdm conda singularity`. (sdm stands for "software deployment method") Then, depending on whether you've used the `conda` or `container` directive in the rule, Snakemake will automatically create and manage the necessary environments for you.
 
-!!! Tip
-    In case you don't want to remember to run snakemake with the `--sdm conda singularity` option every time, you can create a configuration file (e.g., `config.yaml`) and specify the default software deployment method there. We will cover config files in more detail later.
+!!! tip "Remember the workflow profile!"
 
 ### Exercise
 
@@ -1037,6 +1051,7 @@ rule aggregate:
     input:
         expand("results/{sample}.summary", sample = SAMPLES)
 ```
+{% endraw %}
 
 Since this is just one line of code, we can just stick this in the `input` section. But if we really wanted to, we could instead put this in an input function:
 
