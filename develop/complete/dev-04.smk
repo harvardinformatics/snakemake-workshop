@@ -1,0 +1,31 @@
+SAMPLES = ["sample1", "sample2"]
+
+rule all:
+    input: 
+        expand("results/{sample}.summary", sample=SAMPLES)
+
+rule count_lines:
+    input: "data/{sample}.txt"
+    output: "results/{sample}.lines"
+    shell:
+        "wc -l {input} | awk '{{print $1}}' > {output}"
+
+rule count_words:
+    input: "data/{sample}.txt"
+    output: "results/{sample}.words"
+    shell:
+        "wc -w {input} | awk '{{print $1}}' > {output}"
+
+rule combine_counts:
+    input:
+        lines="results/{sample}.lines",
+        words="results/{sample}.words"
+    output:
+        summary="results/{sample}.summary"
+    shell:
+        """
+        echo -n "lines\t" > {output.summary}
+        cat {input.lines} >> {output.summary}
+        echo -n "words\t" >> {output.summary}
+        cat {input.words} >> {output.summary}
+        """

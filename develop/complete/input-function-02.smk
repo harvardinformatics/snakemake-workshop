@@ -1,13 +1,16 @@
-SAMPLES = []
-with open("samplesheet.txt", "r") as f:
-    SAMPLES = [line.strip() for line in f.readlines()]
+    SAMPLES = ["sample1", "sample2"]
 
 rule all:
     input: 
         "results/aggregate-summary.tsv"
 
+def get_count_lines_input(wildcards):
+    current_sample = wildcards.sample
+    current_file = f"data/{current_sample}.txt"
+    return current_file
+
 rule count_lines:
-    input: "data/{sample}.txt"
+    input: get_count_lines_input
     output: "results/{sample}.lines"
     shell:
         "wc -l {input} | awk '{{print $1}}' > {output}"
@@ -32,9 +35,13 @@ rule combine_counts:
         cat {input.words} >> {output.summary}
         """
 
+def get_aggregate_input(wildcards):
+    my_samples = expand("results/{sample}.summary", sample = SAMPLES)
+    return my_samples
+
 rule aggregate:
     input:
-        expand("results/{sample}.summary", sample = SAMPLES)
+        get_aggregate_input
     output:
         "results/aggregate-summary.tsv"
     shell:
@@ -47,6 +54,3 @@ rule aggregate:
             echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
         done
         """
-
-rule clean:
-    shell: "rm -r results/*"

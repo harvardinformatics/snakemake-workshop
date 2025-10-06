@@ -21,14 +21,15 @@ rule combine_counts:
         lines="results/{sample}.lines",
         words="results/{sample}.words"
     output:
-        summary="results/{sample}.summary"
-    shell:
-        """
-        echo -n "lines\t" > {output.summary}
-        cat {input.lines} >> {output.summary}
-        echo -n "words\t" >> {output.summary}
-        cat {input.words} >> {output.summary}
-        """
+        "results/{sample}.summary"
+    params: output_format="tsv"
+    threads: 1
+    resources:
+        mem_mb=1024
+    conda:
+        "envs/combine_counts.yml"
+    script:
+        "scripts/combine_counts.py"
 
 rule aggregate:
     input:
@@ -45,6 +46,3 @@ rule aggregate:
             echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
         done
         """
-
-rule clean:
-    shell: "rm -r results/*"

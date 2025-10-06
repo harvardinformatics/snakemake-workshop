@@ -1,8 +1,10 @@
-SAMPLES = ["sample1", "sample2"]
+SAMPLES = []
+with open("samplesheet.txt", "r") as f:
+    SAMPLES = [line.strip() for line in f.readlines()]
 
 rule all:
     input: 
-        expand("results/{sample}.summary", sample=SAMPLES)
+        "results/aggregate-summary.tsv"
 
 rule count_lines:
     input: "data/{sample}.txt"
@@ -30,5 +32,18 @@ rule combine_counts:
         cat {input.words} >> {output.summary}
         """
 
-rule clean:
-    shell: "rm -r results/*"
+rule aggregate:
+    input:
+        expand("results/{sample}.summary", sample = SAMPLES)
+    output:
+        "results/aggregate-summary.tsv"
+    shell:
+        """
+        echo -e "sample\tlines\twords" > {output}
+        for summary_file in {input}; do
+            SAMPLE_NAME=$(basename "$summary_file" .summary)
+            LINES=$(grep -e "^lines\t" "$summary_file" | cut -f2)
+            WORDS=$(grep -e "^words\t" "$summary_file" | cut -f2)
+            echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
+        done
+        """
