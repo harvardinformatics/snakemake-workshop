@@ -252,7 +252,7 @@ Let's say we found the following documentation for this workflow:
 
     **Workflow config file**
     
-    The sample sheet is specified in the config file with an entry called `samples:` with the value of that entry being the path to your sample sheet file, *e.g.* `sample_sheet: samples.txt` if your sample sheet file is named `samples.txt`.
+    The sample sheet is specified in the config file with an entry called `sample_sheet:` with the value of that entry being the path to your sample sheet file, *e.g.* `sample_sheet: samples.txt` if your sample sheet file is named `samples.txt`.
 
     Also specified in the config file is the input directory with `input_directory:`. This directory should contain all the files that correspond to samples (*e.g.* `sample12.txt`). An output directory can also be specified with `output_directory:`, but this is optional. The default output directory is `results/`.
 
@@ -655,7 +655,7 @@ While **partition** and **CPUs** are somewhat deterministic, **memory** and **ru
 
 In the context of Snakemake, resources need to be specified keeping in mind that each rule may run multiple jobs on different inputs, so you'll have to request what you think is the most memory and runtime a given rule would need for the highest resource demanding input.
 
-Resources can be set for all rules using default values, or set on a per-rule basis.
+Resources can be set for all rules using default values, or set on a per-rule basis.Resources can be set for all rules using default values, or set on a per-rule basis. See a list of standard and SLURM plugin resource directives here: [Snakemake SLURM executor plugin resources :octicons-link-external-24:](https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html#standard-resources){:target="_blank"}.
 
 ### Profiles
 

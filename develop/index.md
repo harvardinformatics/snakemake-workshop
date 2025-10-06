@@ -56,7 +56,7 @@ rule count_lines:
 
 Note that the colon is required syntax.
 
-> **Question:** Snakemake is based on Python. What must happen after every colon at the end of a line of Python code (*e.g.* `if x < 10:` or `while True:`)?
+> **Question:** Snakemake is based on Python. In Python, what must happen on new lines after lines that end in a colon (*e.g.* `if x < 10:` or `while True:`)?
 
 ??? success "Click for answer"
     Code to be executed within that statement must be indented after a colon.
@@ -271,7 +271,7 @@ will be parsed by Snakemake to
 
 > **Exercise:** Where do we put `expand()` functions? They are almost always used in the `input` section of rules, with the wildcards propagating backwards through the rules. In our simple Snakemake workflow, we only need to put the `expand()` function in one place, and you might need to edit the function slightly. Edit your `dev-02.smk` file and try to figure out where to put it and what edits need to be made. Remember that snakemake thinks backwards! 
 >
-> Run `rm -r results/*` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dryrun`. Generate the rulegraph and the DAG for `dev-02.smk`. If everything looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
+> Run `rm -r results/*` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dryrun`. Generate the rulegraph and the DAG for `dev-02.smk`. If everything looks good, run it for real with `snakemake -s dev-02.smk -j 1`.
 
 ??? success "Checkpoint: `dev-02.smk`"
 
@@ -740,7 +740,11 @@ Params can also be global, meaning they can be defined outside of a rule and app
 
 ### Resources
 
-Snakemake has a built-in directive called `threads` that works for both resource allocation and passing that parameter to the shell. You can specify the number of threads a rule should use like this:
+Resource management is crucial when running your workflow on a shared resource. If unspecified, SLURM will have access to all of your computer's resources. On an HPC cluster (like Cannon), the default resources for jobs are too low even for the smallest data analyses.
+
+#### Specifying CPUs
+
+Snakemake has a built-in directive called `threads` that works for both CPU allocation and allows the passing of that parameter to the `shell` directive. You can specify the number of threads a rule should use like this:
 
 ```python
 rule my_rule:
@@ -751,7 +755,11 @@ rule my_rule:
         "some_command {input} -t {threads} > {output}"
 ```
 
-This directive automatically sets the `cpus_per_task` to the number 4 and also passes it to the shell command. We can also reserve arbitrary resources like memory using the `resources` directive:
+If used on a cluster with an executor plugin (*e.g.* the [SLURM plugin :octicons-link-external-24:](https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html){:target="_blank"}), the `threads` directive automatically sets the cpus_per_task` option under `resources` to the same number and also passes it to the shell command.
+
+#### The resources: directive
+
+We can also reserve arbitrary resources like memory using the `resources` directive:
 
 ```python
 rule my_rule:
@@ -764,6 +772,8 @@ rule my_rule:
     shell:
         "some_command {input} -t {threads} > {output}"
 ```
+
+These resources will be used locally or on a per-job basis if submitted to the cluster.
 
 To learn more about the resources directive, see the [snakemake docs :octicons-link-external-24:](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#resources){:target="_blank"}.
 
@@ -864,12 +874,12 @@ rule combine_counts:
 
 Your task is to modify the `combine_counts` rule to do the following:
 
-0.  create a new snakefile called `dev-customization.smk` and copy over the contents of `dev-05.smk`. Then we will work with the `combine_counts` rule for the next items. 
-1.  modify the `shell` command to call the `combine_counts.py` script instead of using shell commands.
-2.  add a parameter called `output_format` with a default value of `tsv`.
-3.  add a conda environment directive that points to the `envs/combine_counts.yml` file.
-4.  add a default resource of 1 thread and 1024 MB of memory
-5.  run the workflow for real to make sure it works
+0.  Create a new snakefile called `dev-customization.smk` and copy over the contents of `dev-05.smk`. Then we will work with the `combine_counts` rule for the next items. 
+1.  Modify the `shell` command to call the `combine_counts.py` script instead of using shell commands.
+2.  Add a parameter called `output_format` with a default value of `tsv`.
+3.  Add a conda environment directive that points to the `envs/combine_counts.yml` file.
+4.  Add a default resource of 1 thread and 1024 MB of memory
+5.  Run the workflow for real to make sure it works
 
 ??? success "Solution"
 
