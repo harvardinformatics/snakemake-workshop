@@ -6,7 +6,4 @@ rule count_lines:
     output: "results/sample1.lines"
     shell:
         "wc -l {input} | awk '{{print $1}}' > {output}"
-
-rule clean:
-    shell: "rm -r results/*"
-    
+        

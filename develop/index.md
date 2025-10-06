@@ -10,7 +10,7 @@ author_header: Workshop Developers
 
 ## Introduction
 
-Welcome to the second part of our Snakemake workshop! In this section, we will learn how to begin creating a Snakemake workflow from a series of shell scripts. We will learn about what types of workflows might benefit from being converted to Snakemake, how to go from a series of shell scripts to a pipeline, and how to make a pipeline configurable so that it can be used with different datasets. 
+Welcome to the second part of our Snakemake workshop! In this section, we will learn how to begin creating a Snakemake workflow from a series of shell scripts. We will learn about what types of workflows might benefit from being converted to Snakemake, how to go from a series of shell scripts to a pipeline, and how to make a pipeline configurable so that it can be used with different datasets. Keep in mind that this session is designed to give you a taste of developing Snakemake workflows, and uses a very simple example. If you want assistance with turning your own workflow into a Snakemake workflow, please reach out to us for help!
 
 ## What workflows are suitable for Snakemake?
 
@@ -39,7 +39,7 @@ Planning ahead is important when writing a Snakemake workflow. Before you start 
 > **Exercise:** Read through the shell script files in the `shell-scripts` directory. These scripts take a set of text files in the `data` directory, count the number of lines and words in each file, and then combine those counts into a summary file for each input file. Draw a diagram of the input-output relationships of these scripts. For example, you might draw something like this:
 
 ```
-data/sample1.txt  -->  count_lines.sh  -->  results/sample1.lines
+data/sample1.txt  -->  01_count_lines.sh  -->  results/sample1.lines
 ```
 
 > Or it may be easier to draw on paper.
@@ -94,7 +94,7 @@ Conveniently, for output files, Snakemake will create any directories specified 
 
 #### Running a command with the `shell` directive
 
-Now that we have the input and output files specified with our rule, we need to tell Snakemake what to do with them. For now (and commonly), we'll use the `shell` directive. We can just plugin how we would normally run our `shell-scripts/01_count_lines.sh` script:
+Now that we have the input and output files specified with our rule, we need to tell Snakemake what to do with them. For now (and commonly), we'll use the `shell` directive. We can just plug in how we would normally run our `shell-scripts/01_count_lines.sh` script:
 
 ```python
 rule count_lines:
@@ -129,8 +129,6 @@ rule count_lines:
     Recall that Snakemake uses curly brackets to substitute information from the rule's other directives. However, in the command above, we use curly brackets with `awk`'s syntax. In order for Snakemake to know not to try to substitute something into `awk`'s curly brackets, we have to **escape** them, by surrounding the whole statement in double curly brackets: {% raw %}`{{ }}`{% endraw %}. You will need to do this any time you want to use curly brackets in your shell commands.
 
 In practice, whether you want to directly write the command in your Snakemake file or call an external script is up to you. In this workshop, we will directly write the commands in the Snakemake file because they are short and easy to read. Directly writing the command in the `shell:` section has the benefit of making the workflow more self-contained and easier to understand. On the other hand, calling an external script is useful for running a more complex command. Note that if you do find yourself making a Snakemake workflow with few rules that all refer to complex scripts, it may be worth considering breaking up that complex script into multiple steps/rules. We will discuss this later in the section "What is the proper scope of a rule?". 
-
-<!-- i thought about having them run the workflow here, but that might be confusing when about to teach about rule: all -->
 
 ### Rule all
 
@@ -219,16 +217,9 @@ Reasons:
 This was a dry-run (flag -n). The order of jobs does not reflect the order of execution.
 ```
 
-### Writing a `clean` rule to reset
+### Resetting your workflow by deleting output files
 
-Now that we'll be actively developing the workflow, it's a good idea to have a way to reset the state between runs. We can do this by writing a `clean` rule that removes all the output files. This will ensure that we start with a clean slate each time we run the workflow. Add the following rule to your `dev-01.smk` Snakefile:
-
-```python
-rule clean:
-    shell: "rm -rf results/*"
-```
-
-Next time we want to run the workflow, we can first run `snakemake -s <snakefile> -R clean --cores 1`. This will remove all the output files and allow us to start fresh.
+Now that we'll be actively developing the workflow, it's a good idea to reset the workflow state between runs. We can do this by running the command a `rm -r results/*`. This will ensure that we start with a clean slate each time we run the workflow.
 
 ??? success "Checkpoint: `dev-01.smk`"
 
@@ -279,8 +270,8 @@ will be parsed by Snakemake to
 ```
 
 > **Exercise:** Where do we put `expand()` functions? They are almost always used in the `input` section of rules, with the wildcards propagating backwards through the rules. In our simple Snakemake workflow, we only need to put the `expand()` function in one place, and you might need to edit the function slightly. Edit your `dev-02.smk` file and try to figure out where to put it and what edits need to be made. Remember that snakemake thinks backwards! 
-
-> Run `snakemake -s dev-02.smk -R clean --cores 1` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dryrun`. Generate the rulegraph and the DAG for `dev-02.smk`. If everything looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
+>
+> Run `rm -r results/*` to reset your project directory. Then do a dry run of `snakemake -s dev-02.smk --dryrun`. Generate the rulegraph and the DAG for `dev-02.smk`. If everything looks good, run it for real with `snakemake -s dev-02.smk --cores 1`.
 
 ??? success "Checkpoint: `dev-02.smk`"
 
@@ -304,7 +295,7 @@ becomes
 
 #### Adding a new rule 1
 
-In the next few sections, we will gradually build new rules for our Snakemake workflow based on the bash scripts in the `develop/shell-scripts` directory. We will name them `dev-03.smk`, `dev-04.smk`, etc. As we test and run our Snakemake workflows, we will be removing the `results` directory and its contents using the `clean` rule. This is because when we do a dry run, Snakemake checks to see if any intermediate or final files have already been created by the rules, and if so, excludes that rule from the dry run logic. This could cause unexpected behavior if we are intending to test the entire logic of the workflow.
+In the next few sections, we will gradually build new rules for our Snakemake workflow based on the bash scripts in the `develop/shell-scripts` directory. We will name them `dev-03.smk`, `dev-04.smk`, etc. As we test and run our Snakemake workflows, we will be removing the `results` directory and its contents each time. This is because when we do a dry run, Snakemake checks to see if any intermediate or final files have already been created by the rules, and if so, excludes that rule from the dry run logic. This could cause unexpected behavior if we are intending to test the entire logic of the workflow.
 
 > **Exercise**: Copy `dev-02.smk` to `dev-03.smk`. In `dev-03.smk`, try to add another rule `count_words` that counts the number of words in each input file. This should do the same thing as the shell script `shell-scripts/02_count_words.sh`. When you add the new rule, make sure to also modify the `all` rule to reflect the new workflow logic and the final product. If you are lost, consult your workflow diagram that you made earlier. Test your code with `--dryrun` and then run it for real to make sure it worked. Remember to remove the `results` directory before running the workflow again. Generate the rulegraph and DAG for `dev-03.smk`.
 
@@ -321,10 +312,10 @@ To add two inputs to a rule in Snakemake, you can specify them on separate lines
 ```python
 rule example:
     input:
-        A="{sample}.A",
-        B="{sample}.B"
+        A="{sample}.txt",
+        B="{sample}.csv"
     output:
-        C="{sample}.C"
+        C="{sample}.tsv"
     shell:
         "cat {input.A} {input.B} > {output.C}"
 ```
@@ -334,10 +325,10 @@ Not every input needs to be a wildcard. You may have a rule that takes a fixed i
 ```python
 rule example:
     input:
-        A="fixed_input.A",
-        B="{sample}.B"
+        A="fixed_input.txt",
+        B="{sample}.csv"
     output:
-        C="{sample}.C"
+        C="{sample}.tsv"
     shell:
         "cat {input.A} {input.B} > {output.C}"
 ```
@@ -828,6 +819,9 @@ This causes Snakemake to create a temporary conda environment based on the speci
 
 The major benefit of using this yaml file is that it will always travel with your project so that it essentially makes the environment documented and portable. By specifying the version numbers of each software package, you can better ensure that your workflow will have consistent behavior. 
 
+!!! Tip "Use the screen command when creating conda environments"
+    Creation of the conda environments can take a while if it's the first time you run a script. If you don't want to get stuck waiting for it to finish, you can use the `screen` command in your terminal to create a detachable session. This way, you can go to other stuff while your environments are created. (This mostly applies to development. In production, you should submit your workflow using a SBATCH script)
+
 #### Containers
 
 Containers are a way of packaging all the requirements of a software into one image file. Containers are run by software called Docker or Singularity. You can usually find container images on dockerhub or the biocontainers registry. Here is an example of a rule using the software `mafft` from the biocontainers registry.
@@ -840,8 +834,6 @@ rule mafft:
     shell:
         "mafft {input} > {output}"
 ```
-
-<!-- can the full galaxyproject url be used for singularity?  e.g. https://depot.galaxyproject.org/singularity/mafft:7.525--h031d066_1 -->
 
 Once you have defined your rule with the container directive, you can then run snakemake with the option `--sdm conda singularity`. (sdm stands for "software deployment method") Then, depending on whether you've used the `conda` or `container` directive in the rule, Snakemake will automatically create and manage the necessary environments for you.
 
@@ -942,11 +934,11 @@ rule count_lines:
     output: "results/{sample}.lines"
     log: "logs/{sample}_count_lines.log"
     shell:
-        "wc -l {input} | awk '{{print \$1}}' > {output}"
+        "wc -l {input} | awk '{{print \$1}}' > {output} 2> {log}"
 ```
 {% endraw %}
 
-It is good practice to name your logs based on the rule, so that you know where it is coming from. In a more complex workflow, you can instead have directories for each rule's logs. Just make sure to create those directories first (perhaps write a rule or add python code to your snakefile to create all log directories!).
+It is good practice to name your logs based on the rule, so that you know where it is coming from. In a more complex workflow, you can instead have directories for each rule's logs.
 
 ## Getting values from a config file
 

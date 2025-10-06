@@ -50,6 +50,3 @@ rule aggregate:
             echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
         done
         """
-
-rule clean:
-    shell: "rm -r results/*"

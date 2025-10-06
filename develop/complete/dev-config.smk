@@ -51,6 +51,3 @@ rule aggregate:
             echo -e "$SAMPLE_NAME\t$LINES\t$WORDS" >> {output}
         done
         """
-
-rule clean:
-    shell: f"rm -r {OUTPUT_DIR}/*"
