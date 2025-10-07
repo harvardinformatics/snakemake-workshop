@@ -1051,7 +1051,6 @@ rule aggregate:
     input:
         expand("results/{sample}.summary", sample = SAMPLES)
 ```
-{% endraw %}
 
 Since this is just one line of code, we can just stick this in the `input` section. But if we really wanted to, we could instead put this in an input function:
 

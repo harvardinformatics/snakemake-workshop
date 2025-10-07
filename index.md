@@ -196,12 +196,6 @@ Click the buttons below to access the workshop content.
 
 #### [Part 1: Running a Snakemake workflow](run/){ .md-button .md-button--primary .centered }
 
-#### Part 2: Developing a Snakemake workflow
-
-<center>
-🏗 Under construction, check back soon! 🚧
-</center>
-
-<!-- [Snakemake Develop](run/run.md){ .md-button .md-button--primary } -->
+#### [Part 2: Developing a Snakemake workflow](develop/){ .md-button .md-button--primary .centered }
 
 ---
