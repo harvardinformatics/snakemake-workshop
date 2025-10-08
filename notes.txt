@@ -1,3 +1,3 @@
 - need a section during run that explains --cores vs -j
-- need clearer explanation of resources in different contexts (possibly a figure)
+- need clearer explanation of resources in different contexts (possibly a figure or maybe a flowchart)
 - need more time for checkpoints etc. (maybe move up) and generally just explain them better

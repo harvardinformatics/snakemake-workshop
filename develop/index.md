@@ -12,6 +12,10 @@ author_header: Workshop Developers
 
 Welcome to the second part of our Snakemake workshop! In this section, we will learn how to begin creating a Snakemake workflow from a series of shell scripts. We will learn about what types of workflows might benefit from being converted to Snakemake, how to go from a series of shell scripts to a pipeline, and how to make a pipeline configurable so that it can be used with different datasets. Keep in mind that this session is designed to give you a taste of developing Snakemake workflows, and uses a very simple example. If you want assistance with turning your own workflow into a Snakemake workflow, please reach out to us for help!
 
+!!! warning "Run `git pull` at the beginning of the workshop"
+
+    Because we have been making changes to the workshop content, if you have cloned the [workshop repository :octicons-link-external-24:](https://github.com/harvardinformatics/snakemake-workshop){ target="_blank" }  before today, please run `git pull` in the root directory of the repository to make sure you have the latest version of the materials. If you downloaded the materials as a zip file, please redownload the zip file and extract it again.
+
 ## What workflows are suitable for Snakemake?
 
 Although we love workflow managers like Snakemake, that doesn't mean that every single time we're running something on our computers we are wrapping them in a Snakemake script. A workflow manager has the following powerful features:
