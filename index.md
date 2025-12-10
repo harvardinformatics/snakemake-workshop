@@ -194,8 +194,8 @@ You can also open the files by using remote desktop or RStudio server. To start 
 Click the buttons below to access the workshop content.
 
 
-#### [Part 1: Running a Snakemake workflow](run/){ .md-button .md-button--primary .centered }
+#### [Part 1: Running a Snakemake workflow](run/index.md){ .md-button .md-button--primary .centered }
 
-#### [Part 2: Developing a Snakemake workflow](develop/){ .md-button .md-button--primary .centered }
+#### [Part 2: Developing a Snakemake workflow](develop/index.md){ .md-button .md-button--primary .centered }
 
 ---

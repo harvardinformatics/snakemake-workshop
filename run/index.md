@@ -24,7 +24,7 @@ Before we get started teaching any workshop, I like to point out that, like any 
 
 This is all to say, if you hear us saying a word that you're familiar with but it's obvious that we're using it in a different way, or if you hear an unfamiliar term, please ask us to explain it. This knowledge gap is one of the most difficult parts about teaching a specific topic mostly because the teachers aren't usually aware of it.
 
-We've put together a table of terms relating to Snakemake and workflows and their definitions in this context: [Workflow terminology](../../../resources/glossary/#workflow-management).
+We've put together a table of terms relating to Snakemake and workflows and their definitions in this context: [Workflow terminology](../../../resources/glossary.md#workflow-management).
 
 There are also other tables to browse on the glossary. Please let us know if there is anything you think we should add to this table.
 
